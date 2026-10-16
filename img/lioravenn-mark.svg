@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="mark-title">
+  <title id="mark-title">Lioravenn Residences monogram</title>
+  <rect width="64" height="64" rx="8" fill="#183c30"/>
+  <g transform="translate(7 1) scale(1.2)" fill="none" color="#d5bd8e">
+    <path d="M5 47V13l8-8h16l8 8v34H5Z" stroke="currentColor" stroke-width="1.1"/>
+    <path d="M10 42V16l6-6h10l6 6v26H10Z" stroke="currentColor" stroke-width=".8"/>
+    <path d="M16 17h4v18h9v4H16V17Z" fill="currentColor"/>
+  </g>
+</svg>

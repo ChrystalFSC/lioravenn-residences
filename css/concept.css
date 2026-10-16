@@ -1,0 +1,89 @@
+.concept-page { --life-green: #183c30; --life-brass: #aa8955; }
+.life-intro { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 100px); align-items: center; padding-top: 64px; padding-bottom: 84px; }
+.life-intro-copy { position: relative; padding: 32px 0 72px; }
+.life-intro h1 { font-size: clamp(3.7rem, 6.4vw, 6.3rem); line-height: .98; letter-spacing: -.04em; font-weight: 400; margin: 27px 0 30px; color: var(--life-green); }
+.concept-page em { font-weight: 400; }
+.life-intro-description { max-width: 350px; margin-bottom: 30px; line-height: 1.85; color: #626b60; }
+.life-intro-number { position: absolute; bottom: 0; left: 0; font-size: .62rem; letter-spacing: .16em; color: #697468; }
+.life-intro-image { position: relative; isolation: isolate; margin: 0; height: 600px; }
+.life-intro-image::after { content: ''; position: absolute; inset: 22px -18px -18px 22px; border: 1px solid #c8b68f; z-index: -1; }
+.life-intro-image img { width: 100%; height: 100%; object-fit: cover; object-position: 40% center; }
+.life-intro-image figcaption { position: absolute; bottom: 25px; left: 25px; right: 25px; color: #fff; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.55rem; text-shadow: 0 2px 8px #000; }
+.life-philosophy { border-top: 1px solid #dcded3; border-bottom: 1px solid #dcded3; padding: 76px 0; }
+.philosophy-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 45px; }
+.philosophy-layout > .eyebrow { padding-top: 12px; }
+.philosophy-layout > div { display: grid; grid-template-columns: 1.1fr 1fr; gap: 38px; align-items: center; }
+.life-philosophy h2, .life-story h2, .life-details h2, .life-closing h2 { font-size: clamp(2.7rem, 4.1vw, 4.1rem); font-weight: 400; line-height: 1.04; letter-spacing: -.025em; color: var(--life-green); margin: 0; }
+.philosophy-layout p:not(.eyebrow), .life-story-copy > p:not(.eyebrow), .life-values p { font-size: .88rem; line-height: 1.95; color: #626b60; }
+.life-stories { padding-top: 115px; padding-bottom: 110px; }
+.life-story { display: grid; grid-template-columns: 1.25fr 1fr; gap: clamp(45px, 9vw, 140px); align-items: center; }
+.life-story + .life-story { margin-top: 125px; }
+.life-story-image { margin: 0; }
+.life-story-image img { display: block; width: 100%; height: 480px; object-fit: cover; }
+.life-story-image figcaption { display: flex; align-items: center; gap: 18px; margin-top: 18px; font-size: .6rem; letter-spacing: .14em; color: #6e7568; }
+.life-story-image figcaption span { color: var(--life-brass); font-size: .7rem; }
+.life-story-copy .eyebrow { margin-bottom: 25px; }
+.life-story-copy > p:not(.eyebrow) { margin: 27px 0; max-width: 350px; }
+.life-story-reverse { grid-template-columns: 1fr 1.25fr; }
+.life-story-reverse .life-story-image { grid-column: 2; grid-row: 1; }
+.life-story-reverse .life-story-copy { grid-column: 1; grid-row: 1; padding-left: 35px; }
+.life-manifesto { padding: 105px 0 100px; text-align: center; color: #f6f4ed; background: var(--life-green); overflow: hidden; }
+.life-manifesto .eyebrow { color: #c8ae7d; }
+.life-manifesto h2 { font-weight: 400; font-size: clamp(2.7rem, 4.6vw, 4.8rem); line-height: 1.14; letter-spacing: -.02em; margin: 32px auto; color: inherit; }
+.life-manifesto em { color: #cbb88e; }
+.manifesto-mark { display: inline-flex; justify-content: center; align-items: center; margin-top: 10px; width: 45px; height: 45px; border: 1px solid #78907a; border-radius: 50% 50% 0 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.8rem; color: #cbb88e; }
+.life-details { padding-top: 100px; padding-bottom: 100px; display: grid; grid-template-columns: 1fr 1.05fr; gap: 100px; }
+.life-details-heading .eyebrow { margin-bottom: 28px; }
+.life-values { border-top: 1px solid #d5d9ca; }
+.life-values article { position: relative; padding: 28px 0 27px 55px; border-bottom: 1px solid #d5d9ca; }
+.value-number { position: absolute; top: 35px; left: 0; color: var(--life-brass); font-size: .75rem; }
+.life-values h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: 1.65rem; margin: 0 0 10px; color: var(--life-green); }
+.life-values p { margin: 0; }
+.life-closing { display: grid; grid-template-columns: 1fr 1fr; background: #eaece2; padding: 0; overflow: hidden; }
+.life-closing > img { width: 100%; height: 445px; object-fit: cover; }
+.life-closing > div { align-self: center; padding: 50px clamp(28px, 5vw, 80px); }
+.life-closing h2 { margin: 25px 0; }
+.life-closing p:not(.eyebrow) { color: #626b60; font-size: .88rem; margin-bottom: 25px; }
+.life-disclaimer { font-size: .68rem; line-height: 1.8; color: #7b8074; padding-top: 30px; padding-bottom: 55px; }
+@media (max-width: 1050px) {
+    .life-intro { gap: 35px; }
+    .life-intro-image { height: 520px; }
+    .philosophy-layout { grid-template-columns: 1fr; gap: 20px; }
+    .philosophy-layout > div { grid-template-columns: 1fr 1fr; }
+    .life-story { gap: 50px; }
+    .life-story-image img { height: 400px; }
+    .life-story-reverse .life-story-copy { padding-left: 0; }
+    .life-details { gap: 50px; }
+}
+@media (max-width: 700px) {
+    .life-intro { grid-template-columns: 1fr; padding-top: 22px; padding-bottom: 60px; gap: 25px; }
+    .life-intro-copy { padding: 24px 0 18px; }
+    .life-intro h1 { font-size: clamp(3.6rem, 12vw, 5.6rem); }
+    .life-intro-description { max-width: 100%; }
+    .life-intro-number { display: none; }
+    .life-intro-image { height: 420px; width: calc(100% - 15px); }
+    .life-intro-image::after { inset: 15px -15px -15px 15px; }
+    .life-intro-image figcaption { font-size: 1.35rem; left: 20px; }
+    .life-philosophy { padding: 50px 0; }
+    .philosophy-layout > div { grid-template-columns: 1fr; gap: 20px; }
+    .philosophy-layout p { margin-bottom: 0; }
+    .life-stories { padding-top: 60px; padding-bottom: 60px; }
+    .life-story, .life-story-reverse { grid-template-columns: 1fr; gap: 32px; }
+    .life-story + .life-story { margin-top: 65px; }
+    .life-story-reverse .life-story-image, .life-story-reverse .life-story-copy { grid-column: auto; grid-row: auto; }
+    .life-story-image img { height: 340px; }
+    .life-story-copy > p:not(.eyebrow) { max-width: none; }
+    .life-story-copy .eyebrow { margin-bottom: 20px; }
+    .life-manifesto { padding: 65px 0; }
+    .life-manifesto h2 { font-size: 2.55rem; }
+    .life-details { grid-template-columns: 1fr; padding-top: 60px; padding-bottom: 60px; gap: 35px; }
+    .life-closing { grid-template-columns: 1fr; }
+    .life-closing > img { height: 320px; }
+    .life-closing > div { padding: 35px 25px 40px; }
+    .life-disclaimer { padding-top: 22px; padding-bottom: 40px; }
+}
+
+/* Keep the editorial headings while making the story comfortable to read. */
+.life-intro-description,.philosophy-layout p:not(.eyebrow),.life-story-copy>p:not(.eyebrow),.life-values p,.life-closing p:not(.eyebrow){font-size:1rem}
+.life-intro-number,.life-story-image figcaption,.life-story-image figcaption span,.value-number,.life-disclaimer{font-size:.75rem}
+.concept-page .btn,.concept-page .text-link{font-size:var(--control-font-size);min-height:48px;gap:12px;line-height:1.6;white-space:normal}

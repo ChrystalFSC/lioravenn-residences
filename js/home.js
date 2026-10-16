@@ -1,0 +1,6 @@
+(() => {
+  'use strict';
+  const host = document.getElementById('home-units');
+  if (!host || !window.Lioravenn) return;
+  host.innerHTML = window.Lioravenn.units.map((unit, index) => `<a class="home-unit" href="floor-plans.html?unit=${unit.id}" aria-label="Explore ${unit.name}, ${unit.bedrooms} bedroom${unit.bedrooms > 1 ? 's' : ''}, ${unit.area.toLocaleString()} square feet"><div class="home-unit-image"><img src="${unit.image}" alt="Illustrative interior for ${unit.name}" loading="lazy" width="897" height="588"><span class="home-unit-number">0${index + 1} / ${unit.label.toUpperCase()}</span></div><div class="home-unit-info"><div class="home-unit-top"><h3>${unit.name}</h3><span>${unit.bedrooms === 1 ? 'A fresh beginning' : unit.bedrooms === 2 ? 'Room to grow' : 'Life, expanded'}</span></div><p class="home-unit-spec">${unit.bedrooms} bedroom${unit.bedrooms > 1 ? 's' : ''} &nbsp; / &nbsp; ${unit.bathrooms} bathroom${unit.bathrooms > 1 ? 's' : ''} &nbsp; / &nbsp; ${unit.area.toLocaleString()} sq ft</p><div class="home-unit-bottom"><div class="home-unit-price"><span>Illustrative price from</span><strong>${window.Lioravenn.money(unit.price)}</strong></div><span class="unit-arrow" aria-hidden="true">↗</span></div></div></a>`).join('');
+})();

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Explore an illustrative home loan estimate for Lioravenn Residences. Compare your deposit, repayment period and monthly payments.">
+    <meta name="theme-color" content="#173e32">
+    <link rel="icon" type="image/svg+xml" href="img/lioravenn-mark.svg">
+    <title>Plan Your Purchase | Lioravenn Residences</title>
+    <link rel="stylesheet" href="css/styles.css?v=20261016-motion2">
+    <link rel="stylesheet" href="css/calculator.css?v=20261016-motion2">
+    <script defer src="js/data.js?v=20261016-motion2"></script>
+    <script defer src="js/main.js?v=20261016-motion2"></script>
+    <script defer src="js/calculator.js?v=20261016-motion2"></script>
+  <link rel="stylesheet" href="css/scroll-motion.css?v=20261016-motion2">
+  <script src="js/scroll-motion.js?v=20261016-motion2" defer></script>
+</head>
+<body>
+    <div id="site-header"></div>
+    <main id="main-content">
+        <section class="page-intro finance-intro">
+            <div class="container">
+                <span class="eyebrow">A little clarity for your next chapter</span>
+                <h1>Make room<br>for your future.</h1>
+                <p>Find a comfortable starting point. Explore the numbers behind a home you love, with an estimate shaped around you.</p>
+            </div>
+            <span class="finance-intro-mark" aria-hidden="true">L</span>
+        </section>
+
+        <section class="finance-section" aria-label="Home loan calculator">
+            <div class="container finance-layout">
+                <form id="finance-form" class="finance-form">
+                    <div class="finance-card-heading"><span class="eyebrow">01 / Your starting point</span><h2>A home within reach.</h2></div>
+                    <div class="finance-field home-select">
+                        <label for="property-type">Choose your residence</label>
+                        <select id="property-type" name="unit">
+                            <option value="type-a">The Solis · Type A</option>
+                            <option value="type-b">The Luma · Type B</option>
+                            <option value="type-c">The Seren · Type C</option>
+                        </select>
+                        <p id="selected-home-detail" class="field-hint">1 bedroom · 947 sq ft</p>
+                    </div>
+                    <div class="finance-field">
+                        <div class="finance-label"><label for="property-price">Property price</label><span>RM</span></div>
+                        <input type="number" id="property-price" name="price" min="1000" max="10000000" step="1000" value="580000" required inputmode="numeric" aria-describedby="price-hint">
+                        <input type="range" id="property-price-slider" min="100000" max="2000000" step="1000" value="580000" aria-label="Adjust property price">
+                        <div id="price-hint" class="range-limits"><span>RM 100,000</span><span>RM 2,000,000</span></div>
+                    </div>
+                    <div class="finance-field">
+                        <div class="finance-label"><label for="down-payment">Down payment</label><span id="deposit-value">RM 58,000</span></div>
+                        <div class="finance-input-unit"><input type="number" id="down-payment" name="deposit" min="0" max="100" step="1" value="10" required inputmode="numeric"><span>%</span></div>
+                        <input type="range" id="down-payment-slider" min="0" max="100" step="1" value="10" aria-label="Adjust down payment percentage">
+                        <div class="range-limits"><span>0%</span><span>100%</span></div>
+                    </div>
+                    <div class="finance-split-fields">
+                        <div class="finance-field">
+                            <label for="interest-rate">Annual interest rate</label>
+                            <div class="finance-input-unit"><input type="number" id="interest-rate" name="rate" min="0" max="15" step="0.05" value="4" required inputmode="decimal"><span>%</span></div>
+                            <input type="range" id="interest-rate-slider" min="0" max="15" step="0.05" value="4" aria-label="Adjust annual interest rate">
+                        </div>
+                        <div class="finance-field">
+                            <label for="loan-term">Repayment period</label>
+                            <div class="finance-input-unit"><input type="number" id="loan-term" name="years" min="1" max="35" step="1" value="30" required inputmode="numeric"><span>years</span></div>
+                            <input type="range" id="loan-term-slider" min="1" max="35" step="1" value="30" aria-label="Adjust repayment period">
+                        </div>
+                    </div>
+                    <p id="finance-error" class="finance-error" role="alert" hidden></p>
+                    <button class="btn btn-primary finance-calculate" type="submit">Update estimate <span aria-hidden="true">↗</span></button>
+                    <p class="finance-assumption">Editable assumptions for illustration. The sample rate is not a lending offer.</p>
+                </form>
+
+                <div class="finance-results">
+                    <section class="repayment-card" aria-labelledby="estimate-title">
+                        <div class="repayment-heading"><span class="eyebrow">02 / A clearer picture</span><span class="estimate-tag">Illustrative estimate</span></div>
+                        <h2 id="estimate-title">Your monthly repayment</h2>
+                        <div class="monthly-amount" id="monthly-payment" aria-live="polite">RM 2,492</div>
+                        <p class="repayment-caption">Principal and interest · <span id="repayment-period">30 years</span></p>
+                        <div class="repayment-divider"></div>
+                        <div class="repayment-visual">
+                            <div class="repayment-ring" id="repayment-ring" role="img" aria-label="Loan principal and total interest"><span><small>Total repayments</small><strong id="total-amount">RM 897,173</strong></span></div>
+                            <div class="repayment-key">
+                                <div><span class="key-dot principal-dot"></span><span>Loan principal<strong id="loan-amount">RM 522,000</strong></span></div>
+                                <div><span class="key-dot interest-dot"></span><span>Total interest<strong id="total-interest">RM 375,173</strong></span></div>
+                            </div>
+                        </div>
+                        <div class="deposit-summary"><span>Your upfront deposit</span><strong id="deposit-summary">RM 58,000</strong></div>
+                        <a id="enquire-unit" href="contact.html?unit=type-a" class="btn btn-light">Arrange a private viewing <span aria-hidden="true">↗</span></a>
+                        <button type="button" id="save-scenario" class="save-scenario">+ Save this scenario to compare</button>
+                        <p id="save-status" class="save-status" role="status"></p>
+                    </section>
+                    <div class="finance-note"><span aria-hidden="true">i</span><p>Estimates assume a fixed rate and equal monthly payments. Legal fees, stamp duty, insurance, maintenance and other ownership costs are excluded. Prices are sample figures for this concept development.</p></div>
+                    <a class="text-link" id="calculator-brochure" href="brochure.html">Create my brochure <span aria-hidden="true">↗</span></a>
+                </div>
+            </div>
+        </section>
+
+        <section class="comparison-section" id="scenario-section" hidden>
+            <div class="container">
+                <div class="scenario-heading"><div><span class="eyebrow">Your possibilities, side by side</span><h2>Find your balance.</h2></div><button type="button" class="text-link" id="clear-scenarios">Clear saved scenarios</button></div>
+                <div class="scenario-list" id="scenario-list"></div>
+                <p class="scenario-note">Up to three scenarios are saved in this browser. No personal information is stored.</p>
+            </div>
+        </section>
+
+        <section class="finance-next">
+            <div class="container finance-next-inner"><span class="eyebrow">From numbers to a feeling</span><h2>Some things are better<br>experienced in person.</h2><a href="contact.html" id="finance-next-link" class="text-link">Plan your visit <span aria-hidden="true">↗</span></a></div>
+        </section>
+    </main>
+    <div id="site-footer"></div>
+</body>
+</html>

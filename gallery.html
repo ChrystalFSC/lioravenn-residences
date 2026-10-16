@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Step into the world of Lioravenn. Explore an image collection and a guided room-by-room look at our fictional residence concept.">
+    <meta name="theme-color" content="#183c30">
+    <link rel="icon" type="image/svg+xml" href="img/lioravenn-mark.svg">
+    <title>The Collection | Lioravenn Residences</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css?v=20261016-motion2">
+    <link rel="stylesheet" href="css/gallery.css?v=20261016-motion2">
+    <script src="js/data.js?v=20261016-motion2" defer></script>
+    <script src="js/main.js?v=20261016-motion2" defer></script>
+    <script src="js/gallery.js?v=20261016-motion2" defer></script>
+  <link rel="stylesheet" href="css/scroll-motion.css?v=20261016-motion2">
+  <script src="js/scroll-motion.js?v=20261016-motion2" defer></script>
+</head>
+<body class="gallery-page">
+    <div id="site-header"></div>
+    <main id="main-content">
+        <section class="collection-intro container" aria-labelledby="collection-title">
+            <div>
+                <p class="eyebrow">THE COLLECTION</p>
+                <h1 id="collection-title">See the spaces.<br><em>Feel the possibility.</em></h1>
+            </div>
+            <div class="collection-intro-copy">
+                <p>Thoughtful interiors. Quiet green corners. A little inspiration for the life you could make here.</p>
+                <a class="text-link" href="#room-explorer">Step inside a home <span aria-hidden="true">↘</span></a>
+            </div>
+        </section>
+        <section class="collection container" aria-label="Lioravenn image collection">
+            <div class="collection-toolbar">
+                <div class="collection-filters" role="group" aria-label="Filter the image collection">
+                    <button type="button" class="collection-filter is-active" data-filter="all" aria-pressed="true">All spaces <span>09</span></button>
+                    <button type="button" class="collection-filter" data-filter="interiors" aria-pressed="false">Interiors</button>
+                    <button type="button" class="collection-filter" data-filter="amenities" aria-pressed="false">Amenities</button>
+                    <button type="button" class="collection-filter" data-filter="nature" aria-pressed="false">Nature</button>
+                </div>
+                <p class="collection-count" id="collection-count" aria-live="polite">9 moments to discover</p>
+            </div>
+            <div class="collection-grid">
+                <button class="collection-item collection-item-wide" type="button" data-category="interiors" data-title="The art of coming home" data-description="An inviting living and dining space, filled with natural light.">
+                    <span class="collection-image"><img src="img/enhanced/living_room.webp" alt="A light-filled open living and dining room" width="1537" height="1023" fetchpriority="high"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">The art of coming home</span><span class="collection-category">INTERIORS</span></span>
+                </button>
+                <button class="collection-item" type="button" data-category="nature" data-title="A greener kind of quiet" data-description="A garden path with flowering borders and a canopy of trees.">
+                    <span class="collection-image"><img src="img/enhanced/Garden%20Area.webp" alt="A garden path surrounded by lush plants" width="1622" height="969" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">A greener kind of quiet</span><span class="collection-category">NATURE</span></span>
+                </button>
+                <button class="collection-item" type="button" data-category="interiors" data-title="Your personal retreat" data-description="Warm materials and soft tones create a restful bedroom setting.">
+                    <span class="collection-image"><img src="img/enhanced/bedroom.webp" alt="A bedroom styled in warm neutral tones" width="1549" height="1015" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">Your personal retreat</span><span class="collection-category">INTERIORS</span></span>
+                </button>
+                <button class="collection-item collection-item-wide" type="button" data-category="amenities" data-title="An afternoon, well spent" data-description="Open-air poolside relaxation with room to unwind.">
+                    <span class="collection-image"><img src="img/enhanced/pool.webp" alt="A swimming pool with loungers on a timber deck" width="1536" height="1024" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">An afternoon, well spent</span><span class="collection-category">AMENITIES</span></span>
+                </button>
+                <button class="collection-item" type="button" data-category="interiors" data-title="Made for everyday rituals" data-description="An inviting kitchen setting for a slower start or a shared meal.">
+                    <span class="collection-image"><img src="img/optimized/kitchen.webp" alt="A contemporary kitchen with ample preparation space" width="876" height="584" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">Made for everyday rituals</span><span class="collection-category">INTERIORS</span></span>
+                </button>
+                <button class="collection-item" type="button" data-category="amenities" data-title="A little more energy" data-description="A fitness space to inspire a daily routine at your own pace.">
+                    <span class="collection-image"><img src="img/optimized/gym.webp" alt="An indoor fitness room with exercise equipment" width="875" height="583" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">A little more energy</span><span class="collection-category">AMENITIES</span></span>
+                </button>
+                <button class="collection-item" type="button" data-category="amenities" data-title="Space to come together" data-description="A clubhouse setting for gathering and enjoying good company.">
+                    <span class="collection-image"><img src="img/optimized/Clubhouse.webp" alt="A clubhouse space for residents to gather" width="1000" height="665" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">Space to come together</span><span class="collection-category">AMENITIES</span></span>
+                </button>
+                <button class="collection-item" type="button" data-category="interiors" data-title="The considered details" data-description="A bathroom interior that pairs simple forms with warm finishes.">
+                    <span class="collection-image"><img src="img/optimized/Bathroom.webp" alt="A contemporary bathroom with warm materials" width="1000" height="666" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">The considered details</span><span class="collection-category">INTERIORS</span></span>
+                </button>
+                <button class="collection-item collection-item-wide" type="button" data-category="amenities" data-title="A different perspective" data-description="A second view of the pool and its outdoor setting.">
+                    <span class="collection-image"><img src="img/optimized/pool2.webp" alt="A second perspective of the outdoor pool" width="875" height="583" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-caption"><span class="collection-item-title">A different perspective</span><span class="collection-category">AMENITIES</span></span>
+                </button>
+            </div>
+            <p class="collection-note">An illustrative collection from the original university project. Images convey a design mood and are not tied to a particular floor plan.</p>
+        </section>
+        <section id="room-explorer" class="room-explorer" aria-labelledby="explorer-title">
+            <div class="container">
+                <div class="explorer-heading">
+                    <div><p class="eyebrow">THE ROOM EXPLORER</p><h2 id="explorer-title">Make yourself<br><em>at home.</em></h2></div>
+                    <p>Take a closer look, one room at a time. Select a space to explore its mood and possibilities.</p>
+                </div>
+                <div class="explorer-layout">
+                    <div class="explorer-panel" id="room-panel" role="tabpanel" aria-labelledby="room-living" tabindex="0">
+                        <img id="room-image" src="img/enhanced/living_room.webp" alt="A light-filled open living and dining room" width="1537" height="1023" loading="lazy">
+                        <div class="explorer-image-caption"><span id="room-number">01 / 04</span><span id="room-label">LIVING &amp; DINING</span><span aria-hidden="true">LIORAVENN</span></div>
+                    </div>
+                    <div class="explorer-sidebar">
+                        <div class="room-tabs" role="tablist" aria-label="Explore the rooms" aria-orientation="vertical">
+                            <button type="button" role="tab" id="room-living" aria-selected="true" aria-controls="room-panel" data-room="living"><span class="room-tab-number">01</span><span>Living &amp; dining</span><span aria-hidden="true">↗</span></button>
+                            <button type="button" role="tab" id="room-bedroom" aria-selected="false" aria-controls="room-panel" tabindex="-1" data-room="bedroom"><span class="room-tab-number">02</span><span>The bedroom</span><span aria-hidden="true">↗</span></button>
+                            <button type="button" role="tab" id="room-kitchen" aria-selected="false" aria-controls="room-panel" tabindex="-1" data-room="kitchen"><span class="room-tab-number">03</span><span>The kitchen</span><span aria-hidden="true">↗</span></button>
+                            <button type="button" role="tab" id="room-bathroom" aria-selected="false" aria-controls="room-panel" tabindex="-1" data-room="bathroom"><span class="room-tab-number">04</span><span>The bathroom</span><span aria-hidden="true">↗</span></button>
+                        </div>
+                        <div class="room-story" aria-live="polite">
+                            <h3 id="room-story-title">Life, with room to unfold.</h3>
+                            <p id="room-description">A place for easy mornings and long conversations. Imagine an open living and dining space that brings everyone a little closer.</p>
+                        </div>
+                        <a href="floor-plans.html?unit=type-b" class="explorer-home-link">Explore The Luma <span aria-hidden="true">↗</span><span class="explorer-home-meta">2 bedrooms · 1,076 sq ft · Sample layout</span></a>
+                        <p class="explorer-note">An image-based concept tour. Room photography is illustrative and does not represent the dimensions or fit-out of The Luma.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="collection-closing container" aria-labelledby="collection-closing-title">
+            <div><p class="eyebrow">THE NEXT STEP</p><h2 id="collection-closing-title">Find a space<br><em>that feels like you.</em></h2></div>
+            <a class="btn btn-primary" href="floor-plans.html">Discover the residences <span aria-hidden="true">↗</span></a>
+        </section>
+    </main>
+    <div id="site-footer"></div>
+    <dialog class="collection-lightbox" id="collection-lightbox" aria-labelledby="lightbox-title" aria-describedby="lightbox-description">
+        <div class="lightbox-shell">
+            <div class="lightbox-top"><span>LIORAVENN / THE COLLECTION</span><button type="button" class="lightbox-close" aria-label="Close image viewer">Close <span aria-hidden="true">×</span></button></div>
+            <div class="lightbox-image-wrap"><img id="lightbox-image" src="img/enhanced/living_room.webp" alt=""></div>
+            <div class="lightbox-bottom">
+                <div aria-live="polite"><h2 id="lightbox-title">The art of coming home</h2><p id="lightbox-description">An inviting living and dining space, filled with natural light.</p></div>
+                <div class="lightbox-navigation"><button type="button" class="lightbox-prev" aria-label="Previous image">←</button><span id="lightbox-position">1 / 9</span><button type="button" class="lightbox-next" aria-label="Next image">→</button></div>
+            </div>
+        </div>
+    </dialog>
+</body>
+</html>

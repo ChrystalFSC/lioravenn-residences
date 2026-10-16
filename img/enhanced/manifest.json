@@ -1,0 +1,58 @@
+{
+  "living_room": {
+    "width": 1537,
+    "height": 1023,
+    "source": "AI-restored concept image from original gallery photograph",
+    "master": "img/enhanced/masters/living_room.png",
+    "original": "img/gallery/living_room.png",
+    "quality": 94
+  },
+  "pool": {
+    "width": 1536,
+    "height": 1024,
+    "source": "AI-restored concept image from original gallery photograph",
+    "master": "img/enhanced/masters/pool.png",
+    "original": "img/gallery/pool.png",
+    "quality": 94
+  },
+  "bedroom3": {
+    "width": 1523,
+    "height": 1032,
+    "source": "AI-restored concept image from original gallery photograph",
+    "master": "img/enhanced/masters/bedroom3.png",
+    "original": "img/gallery/bedroom3.png",
+    "quality": 94
+  },
+  "bedroom5": {
+    "width": 1600,
+    "height": 900,
+    "source": "Higher-quality encoding of the original photograph",
+    "original": "img/gallery/bedroom5.png",
+    "master": "img/gallery/bedroom5.png",
+    "quality": 95
+  },
+  "LR3": {
+    "width": 1539,
+    "height": 1022,
+    "source": "AI-restored concept image from original gallery photograph",
+    "master": "img/enhanced/masters/LR3.png",
+    "original": "img/gallery/LR3.png",
+    "quality": 94
+  },
+  "bedroom": {
+    "width": 1549,
+    "height": 1015,
+    "source": "AI-restored concept image from original gallery photograph",
+    "master": "img/enhanced/masters/bedroom.png",
+    "original": "img/gallery/bedroom.png",
+    "quality": 94
+  },
+  "Garden Area": {
+    "width": 1622,
+    "height": 969,
+    "source": "AI-restored concept image from original gallery photograph",
+    "master": "img/enhanced/masters/Garden Area.png",
+    "original": "img/gallery/Garden Area.png",
+    "quality": 94
+  }
+}
