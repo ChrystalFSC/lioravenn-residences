@@ -1,54 +1,133 @@
-# Lioravenn Residences
+<p align="center">
+  <img src="docs/readme/cover.svg" alt="Lioravenn Residences — The art of coming home. An interactive property website." width="100%">
+</p>
 
-A nature-inspired luxury residence website, reimagined from a university assignment. Built with plain HTML, CSS and JavaScript, with no build step. PDF export uses a bundled copy of jsPDF; no package installation is needed to run the website.
+<h1 align="center">Lioravenn Residences</h1>
 
-The brand pairs forest green, warm ivory and brass with an original L monogram, Cormorant Garamond headings, Manrope body text and the project's original imagery. Lioravenn is a coined name selected for this fictional concept; exact-name web searches on 16 October 2026 returned no matches. This is a preliminary naming check, not trademark clearance.
+<p align="center">
+  A nature-inspired property website that turns browsing into a personal collection.<br>
+  Reimagined from a university project with thoughtful design and connected interactions.
+</p>
 
-## Run locally
+<p align="center">
+  <a href="https://chrystalfsc.github.io/lioravenn-residences/"><strong>Explore the live website ↗</strong></a>
+  &nbsp; · &nbsp;
+  <a href="#the-experience">The experience</a>
+  &nbsp; · &nbsp;
+  <a href="#run-it-locally">Run locally</a>
+  &nbsp; · &nbsp;
+  <a href="docs/DEVELOPMENT.md">Development guide</a>
+</p>
 
-Open `index.html` directly, or serve the project for a consistent browser origin:
+<p align="center"><strong>HTML5 &nbsp; / &nbsp; CSS3 &nbsp; / &nbsp; Vanilla JavaScript &nbsp; / &nbsp; jsPDF</strong></p>
 
-```powershell
+<p align="center">
+  <a href="https://chrystalfsc.github.io/lioravenn-residences/">
+    <img src="docs/previews/lioravenn-homepage.jpg" alt="Desktop homepage with a forest-green garden video backdrop, brass accents, and the headline The art of coming home." width="100%">
+  </a>
+  <br>
+  <sub>Silent garden footage, editorial typography, and a calmer first impression. Click to explore.</sub>
+</p>
+
+| Explore | Compare | Experience | Take away |
+| :---: | :---: | :---: | :---: |
+| **7 pages** | **3 home layouts** | **2 ambient video loops** | **Your own PDF brochure** |
+| One connected journey | Original Type A, B & C plans | 1080p MP4 delivery | Generated on your device |
+
+## The experience
+
+The goal is to help a visitor move from *“I like the feeling of this place”* to *“this is the home I want to explore.”* The planning tools carry home selections from page to page.
+
+| Feature | What you can do |
+| :--- | :--- |
+| **Find your home** | Filter by bedroom count and budget, save favourites, compare layouts, and open the original floor plans. |
+| **Choose a setting** | Explore a concept site diagram, then select a building, level, outlook, and compatible home layout. |
+| **Explore your numbers** | Adjust down payment, rate, and term; compare up to three saved financing scenarios. |
+| **Make it personal** | Build an A4 brochure with selected homes, plans, financing estimates, a concept setting, and viewing questions. |
+| **Step inside** | Browse a filterable gallery, open larger photos, and switch between four spaces in the room explorer. |
+| **Move through the story** | Scroll up or down through reversible reveals, gentle image movement, reading progress, and desktop chapter navigation. |
+
+### A closer look
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://chrystalfsc.github.io/lioravenn-residences/floor-plans.html#site-plan">
+        <img src="docs/previews/lioravenn-site-plan.jpg" alt="Interactive concept site plan showing three buildings and controls for level, outlook, and layout." width="100%">
+      </a>
+      <br><strong>Find your point of view</strong><br>
+      Explore a setting and carry it into your brochure.
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://chrystalfsc.github.io/lioravenn-residences/brochure.html">
+        <img src="docs/previews/lioravenn-brochure-builder.jpg" alt="Personal brochure builder with home selections beside a live branded PDF preview." width="100%">
+      </a>
+      <br><strong>A collection, made personal</strong><br>
+      Turn your shortlist into a downloadable A4 PDF.
+    </td>
+  </tr>
+</table>
+
+*Screenshots show the working interface. Buildings, prices, outlooks, and imagery belong to a fictional development concept.*
+
+## One journey, connected choices
+
+```mermaid
+flowchart TD
+    A["Discover the residence<br/>Atmosphere, spaces and lifestyle"] --> B["Find your home<br/>Filter, save and compare"]
+    B --> C["Choose a concept setting<br/>Building, level and outlook"]
+    B --> D["Explore your budget<br/>Editable financing estimates"]
+    C --> E["Build your personal brochure<br/>Homes, plans, estimates and questions"]
+    D --> E
+    D --> F["Prepare a viewing request<br/>Review and download a local draft"]
+    classDef discovery fill:#183c30,stroke:#d5bd8e,color:#ffffff
+    classDef choice fill:#f6f4ed,stroke:#aa8955,color:#183c30
+    class A,B discovery
+    class C,D,E,F choice
+```
+
+Home selections travel through page URLs. Saved favourites and valid calculator assumptions can be reused in the brochure; a visitor can also start with a fresh selection.
+
+## Design with a sense of place
+
+**Forest green · Warm ivory · Brass**
+
+The original portal-shaped **L** monogram, Cormorant Garamond headings, and Manrope body text create a consistent identity across the website and exported brochure.
+
+- **Responsive layouts:** the same tools adapt to desktop and phone screens.
+- **Considered motion:** native scrolling, restrained transitions, and support for reduced-motion and data-saving preferences.
+- **Keyboard access:** skip links, focus handling, accessible dialogs, and keyboard-operated room tabs.
+- **Sharper imagery:** high-quality WebP assets with preserved originals and [documented AI-restoration provenance](img/enhanced/README.md).
+
+## Under the surface
+
+| Layer | Implementation |
+| :--- | :--- |
+| **Interface** | Semantic HTML, CSS Grid/Flexbox, shared styles, and page-specific stylesheets. |
+| **Interactions** | Plain JavaScript for filtering, comparison, dialogs, site selections, gallery tabs, and form validation. |
+| **Shared state** | A shared home catalogue, URL parameters, and browser storage for non-personal selections and scenarios. |
+| **Motion & media** | IntersectionObserver, requestAnimationFrame, responsive images, MP4/WebM video, and still-image fallbacks. |
+| **Documents** | Bundled jsPDF generates the brochure locally, including pagination for long viewing questions. |
+| **Delivery** | Static files hosted on GitHub Pages. No framework or build step is required. |
+
+See the [development guide](docs/DEVELOPMENT.md) for page routes, data flow, media preparation, PDF behavior, and implementation limits.
+
+## Run it locally
+
+```bash
+git clone https://github.com/ChrystalFSC/lioravenn-residences.git
+cd lioravenn-residences
 python -m http.server 8765 --bind 127.0.0.1
 ```
 
-Then visit `http://127.0.0.1:8765/`. The updated project has not been deployed to the former live demo.
+Open **[localhost:8765](http://127.0.0.1:8765/)**. Python 3 is only used to serve the files; the website itself runs in the browser.
 
-## Explore
+<details>
+<summary><strong>Verification commands and coverage</strong></summary>
 
-- **The Residence** — Cinematic garden-led landing page, residence collection, lifestyle stories and guided next steps.
-- **Our Homes** — Bedroom and budget filters, saved favourites, comparison, original floor plans and an interactive concept site plan with building, level, outlook and layout choices.
-- **The Lifestyle** — Editorial spaces, daily rituals and the nature-inspired design philosophy.
-- **The Collection** — Filterable photography, an accessible image viewer and a four-room guided explorer.
-- **Plan Your Purchase** — Editable loan assumptions, repayment estimate, principal/interest breakdown and up to three saved scenarios.
-- **Plan a Viewing** — Selected-home continuity, date/contact preferences, honest draft confirmation and a downloadable viewing request.
-- **Your Personal Brochure** — A live preview and downloadable A4 PDF containing selected homes, original floor plans, editable loan assumptions, an optional concept site selection and viewing questions.
+Run from the repository root with Python 3 and Node.js installed. No package installation is needed.
 
-Unit links preserve the choice using `?unit=type-a`, `?unit=type-b` or `?unit=type-c` between floor plans, calculator and viewing pages. Legacy `floor-plans.html#type-a` links also work.
-
-The site plan lives at `floor-plans.html#site-plan`. A shared setting uses `?block=garden&level=mid&view=garden&unit=type-b#site-plan`; opening it does not automatically open a layout dialog. Building positions, levels and outlooks are clearly labelled fictional design scenarios, not verified orientation, inventory or reservations. Adding a setting to a brochure preserves the existing brochure shortlist.
-
-Open `brochure.html` directly, from a layout, from a comparison or from the calculator. `?units=type-a,type-b` preselects an exact comparison. Saved favourites and the latest valid calculator down-payment/rate/term assumptions can be reused; estimates use each home's illustrative price. Only non-personal home IDs and concept selections are stored. Viewing questions stay in the open page and the downloaded PDF. Long questions continue onto additional pages; non-Latin questions are rendered locally as images while the brochure's main text remains selectable.
-
-## Content and simulation
-
-This is a fictional development. The Solis / Type A, The Luma / Type B and The Seren / Type C retain the original 947, 1,076 and 1,431 sq ft plans. Shared data in `js/data.js` keeps names, room counts and illustrative prices consistent.
-
-The imagery is illustrative and is not a verified representation of a single development. The room explorer is an image-based experience, not a 360-degree tour. The original unrelated branded video is no longer presented as an Lioravenn tour.
-
-The homepage uses two silent inline autoplay loops edited from the original unbranded `videos/bg1.mp4`: a garden backdrop and an architectural lifestyle section. The default H.264 MP4 copies are delivered at 1920 × 1080 with less compression, alongside 1080p still-image posters and smaller WebM compatibility fallbacks. The HD copies are encoded directly from the original source; detail remains limited by that footage and its letterbox crop. Video sources load when their section enters the viewport, and playback pauses outside the viewport or in a hidden tab. Autoplay is disabled for reduced-motion and data-saving preferences. Both videos repeat without playback buttons or popup players.
-
-The homepage has reversible section reveals, subtle still-image movement, a reading-progress line and a desktop chapter control that follows the current section in either scroll direction. Other pages use restrained editorial reveals. Native scrolling, anchor links, keyboard access and existing tools stay usable; forms, dialogs, site-plan controls and live brochure previews are excluded. Motion is disabled for reduced-motion/data-saving preferences, and content stays visible if JavaScript or intersection observation is unavailable.
-
-Higher-resolution concept photographs live in `img/enhanced/`. Six small source photos were faithfully restored with the built-in image-generation tool; their reconstructed texture is illustrative, not verified property detail. Preserved masters, exact output dimensions and restoration prompts are documented in that folder. The existing 1600×900 bedroom photograph also has a higher-quality WebP copy. Enhanced images are used consistently by pages, gallery rooms/lightbox, home cards and brochure/PDF export. Floor plans retain their original geometry and raster source detail; sharper drawings would require higher-resolution originals.
-
-The viewing form does **not** send an enquiry or reserve an appointment. It prepares a local draft, which the visitor can download. Contact details are not saved to local storage. Favourites and non-personal calculator assumptions/scenarios are stored only in the visitor's browser. No backend or sales inbox is connected.
-
-Loan estimates assume a fixed annual rate and equal monthly payments, excluding ownership fees and other costs. The default sample rate is editable and is not a lending offer.
-
-## Verification
-
-```powershell
+```bash
 python scripts/check-site.py
 node tests/floor-plans.test.cjs
 node tests/site-plan.test.cjs
@@ -57,28 +136,25 @@ node tests/brochure-pdf.test.cjs
 node tests/scroll-motion.test.cjs
 ```
 
-The static audit checks seven active pages, exact-case file references, anchors, headings, branding and JavaScript syntax. Tests cover home-finder interactions, site-plan rules and DOM behavior, finance continuity/validation, safe data handling, PDF pagination and 74 scroll-motion assertions. Browser checks cover the connected site-plan/brochure journey, invalid and empty states, desktop/phone layouts, reversible chapter navigation, full-resolution gallery images and actual PDF downloads. Exported PDFs were rendered for visual inspection, including long multilingual questions and the enhanced image cover.
+| Check | Focus |
+| :--- | :--- |
+| Static audit | Seven active pages, exact-case assets, links, anchors, headings, branding, and JavaScript syntax. |
+| Home finder | Filters, saved homes, comparisons, and layout interactions. |
+| Concept site plan | Supported selections, shared settings, and DOM behavior. |
+| Brochure models | Financing validation, selection continuity, and safe note handling. |
+| PDF generation | Long-note pagination, multilingual notes, wrapping, and page bounds. |
+| Scroll motion | Both scroll directions, reduced-motion changes, focus, fallbacks, and exclusions for interactive tools. |
 
-The pinned jsPDF 4.2.1 browser bundle and MIT license are in `js/vendor/`, with registry provenance and the verified package hash in that directory's README. PDF generation runs on the visitor's device; there is no upload or document service.
+Browser checks also cover desktop/phone layouts, full-resolution gallery images, silent video playback, and actual PDF downloads. Exported PDFs were rendered for visual inspection.
 
-Optimized WebP copies live in `img/optimized/`; originals are preserved. The copies reduce the image payload by approximately 87%. To regenerate them with Pillow installed:
+</details>
 
-```powershell
-python scripts/optimize-assets.py
-python scripts/prepare-enhanced-assets.py
-```
+## Project story & credits
 
-To recreate the edited video clips and posters, supply an existing FFmpeg executable:
+This began as a **group assignment for CSS 3333 Web Technology at UTS (University of Technology Sarawak)**, Year 2 Semester 2. My original contribution was the contact page, including Google Forms integration, FAQ, Google Maps, and validation.
 
-```powershell
-python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe
-python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe --hd
-```
+The later portfolio refinement was developed with AI assistance and expands the project with the Lioravenn identity, redesigned pages, connected selection tools, scroll motion, and personal brochure export. The original group work and floor-plan assets remain part of that history.
 
-The first command recreates the smaller H.264 MP4 / VP8 WebM copies; `--hd` creates the two 1080p MP4 copies used by the page. Both modes refresh the 1080p posters. The preparation script preserves the original video, trims black transition frames and crops the baked letterbox bars. No video-processing dependency is needed to run the finished website.
+**Concept scope:** this is an academic demonstration. Viewing requests create local drafts; no enquiry is sent and no appointment or unit is reserved. Financing uses editable fixed-rate illustrations. The room explorer uses photographs rather than a 360° model, and AI-restored imagery conveys a design mood rather than verified property detail.
 
-## Original academic project
-
-Originally developed as a group assignment for **CSS 3333 Web Technology**, UTS (University of Technology Sarawak), Year 2 Semester 2. The original author's contribution was the contact page, including Google Forms integration, FAQ, Google Maps and validation.
-
-This refinement preserves the static multipage structure and original plan/image assets while replacing the branding, page design and visitor journey. Created for academic and demonstration purposes.
+Third-party PDF code retains its [jsPDF license and provenance](js/vendor/README.md). Media sources, original files, and restoration details are documented in the [development guide](docs/DEVELOPMENT.md) and [image notes](img/enhanced/README.md).

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="cover-title cover-description">
+  <title id="cover-title">Lioravenn Residences — The art of coming home.</title>
+  <desc id="cover-description">A designed forest-green and brass brand cover for an interactive property website. An original L portal monogram accompanies the headline, with an abstract architectural and garden line drawing to the right.</desc>
+  <defs>
+    <linearGradient id="forest" x1="0" y1="0" x2="1200" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#183c30"/>
+      <stop offset="1" stop-color="#102c24"/>
+    </linearGradient>
+    <linearGradient id="drawing-fade" x1="728" y1="150" x2="1140" y2="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9daf99"/>
+      <stop offset="1" stop-color="#6d8b77"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="420" fill="url(#forest)"/>
+  <rect x="16.5" y="16.5" width="1167" height="387" fill="none" stroke="#627458" stroke-opacity=".38"/>
+
+  <!-- Original L portal mark, shared with the residence identity. -->
+  <g transform="translate(73 40) scale(.76)" fill="none" stroke="#d5bd8e" stroke-linejoin="miter">
+    <path d="M5 47V13l8-8h16l8 8v34H5Z" stroke-width="1.5"/>
+    <path d="M10 42V16l6-6h10l6 6v26H10Z" stroke-width="1"/>
+    <path d="M16 17h4v18h9v4H16V17Z" fill="#d5bd8e" stroke="none"/>
+  </g>
+  <text x="119" y="66" fill="#f6f4ed" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="3.2">LIORAVENN RESIDENCES</text>
+
+  <text x="72" y="186" fill="#f6f4ed" font-family="Georgia, 'Times New Roman', serif" font-size="78" letter-spacing="-2.3">The art of</text>
+  <text x="72" y="270" fill="#d5bd8e" font-family="Georgia, 'Times New Roman', serif" font-size="78" font-style="italic" letter-spacing="-2.5">coming home.</text>
+  <text x="76" y="316" fill="#d0d9ce" font-family="Arial, Helvetica, sans-serif" font-size="16" letter-spacing=".5">An interactive property website</text>
+  <path d="M76 363h47" stroke="#d5bd8e" stroke-width="1"/>
+  <text x="137" y="367" fill="#b7c5b6" font-family="Arial, Helvetica, sans-serif" font-size="9.5" letter-spacing="1.9">THOUGHTFUL SPACES. CONSIDERED EXPERIENCES.</text>
+
+  <!-- An architectural study, deliberately distinct from a property rendering. -->
+  <path d="M682 66v288" stroke="#718568" stroke-opacity=".3"/>
+  <g fill="none" stroke="url(#drawing-fade)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Stepped volumes and slender floor plates. -->
+    <path d="M824 305V137h207v168M824 137l31-17h198l63 38v147M1031 137l85 21M1031 137v168"/>
+    <path d="M850 120V96h159v24M850 96l25-12h159v36M1009 96l25-12"/>
+    <path d="M824 180h207l85 19M824 221h207l85 15M824 262h207l85 8"/>
+    <path d="M840 172h175M840 213h175M840 254h175" stroke-opacity=".62"/>
+    <path d="M846 137v35M887 137v35M928 137v35M969 137v35M1010 137v35M846 180v33M887 180v33M928 180v33M969 180v33M1010 180v33M846 221v33M887 221v33M928 221v33M969 221v33M1010 221v33" stroke-opacity=".62"/>
+    <path d="M1053 148v157M1084 155v150M1053 185l31 7M1053 225l31 6M1053 266l31 3" stroke-opacity=".58"/>
+    <path d="M863 104v16M893 104v16M923 104v16M953 104v16M983 104v16" stroke-opacity=".55"/>
+
+    <!-- The entrance echoes the cut-corner portal of the L monogram. -->
+    <path d="M900 305v-26l11-11h30l11 11v26M908 305v-23l7-7h22l7 7v23" stroke="#d5bd8e" stroke-opacity=".95"/>
+    <path d="M844 305v-34h37v34M976 305v-34h37v34"/>
+    <path d="M815 305h310M807 311h326" stroke="#d5bd8e" stroke-opacity=".7"/>
+
+    <!-- A light, botanical foreground frames the architecture. -->
+    <path d="M778 306v-69M778 258l-13-15M778 273l17-19M778 245l7-11"/>
+    <path d="M778 238c-19 11-42 1-38-17-17-15-6-35 9-37-4-19 17-32 33-21 16-16 37-3 35 14 19 6 24 31 8 42 1 18-20 30-36 18"/>
+    <path d="M756 203c9 1 16 6 22 16M796 187c-8 7-13 16-17 25" stroke-opacity=".5"/>
+    <path d="M1112 309c-5-14-1-31 8-41M1114 295c10-4 16-11 17-20M1115 304c-11-4-18-11-20-20"/>
+    <path d="M742 318c18-10 39-11 62-5M1040 321c28-10 60-7 88 0" stroke-opacity=".75"/>
+    <path d="M752 317c-1-8-6-14-12-17M759 315c0-9 3-16 8-21M787 312c-1-8 2-14 7-19M1080 316c-2-7 0-13 4-18M1091 316c2-9 7-15 14-18" stroke-opacity=".75"/>
+
+    <!-- A quiet water plane and a curving garden walk. -->
+    <path d="M786 333c51-15 126-15 183-5 33 6 34 18 2 24-42 9-107 7-146 0" stroke-opacity=".8"/>
+    <path d="M815 335c43-8 99-8 141-1M830 343c36-5 77-4 107 0" stroke-opacity=".42"/>
+    <path d="M737 347c49 32 124 43 205 35 80-8 135-20 194-14M737 359c55 28 125 35 207 27" stroke-opacity=".48"/>
+    <path d="M1009 324c25 0 52 4 77 13M1002 331c19 1 39 4 56 9" stroke-opacity=".36"/>
+  </g>
+
+  <circle cx="1106" cy="84" r="16" fill="none" stroke="#d5bd8e" stroke-opacity=".55" stroke-width=".9"/>
+  <path d="M1106 62v-5M1106 111v-5M1079 84h-5M1138 84h-5" stroke="#d5bd8e" stroke-opacity=".32" stroke-width=".9"/>
+  <text x="746" y="65" fill="#b7c5b6" font-family="Arial, Helvetica, sans-serif" font-size="8.5" letter-spacing="2.4">A CONSIDERED WAY OF LIVING</text>
+</svg>
