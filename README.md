@@ -74,12 +74,12 @@ The goal is to help a visitor move from *“I like the feeling of this place”*
 
 ```mermaid
 flowchart TD
-    A["Discover the residence<br/>Atmosphere, spaces and lifestyle"] --> B["Find your home<br/>Filter, save and compare"]
-    B --> C["Choose a concept setting<br/>Building, level and outlook"]
-    B --> D["Explore your budget<br/>Editable financing estimates"]
-    C --> E["Build your personal brochure<br/>Homes, plans, estimates and questions"]
+    A["Discover the residence"] --> B["Find, save and compare"]
+    B --> C["Concept site plan"]
+    B --> D["Financing scenarios"]
+    C --> E["Personal brochure PDF"]
     D --> E
-    D --> F["Prepare a viewing request<br/>Review and download a local draft"]
+    D --> F["Viewing request draft"]
     classDef discovery fill:#183c30,stroke:#d5bd8e,color:#ffffff
     classDef choice fill:#f6f4ed,stroke:#aa8955,color:#183c30
     class A,B discovery
