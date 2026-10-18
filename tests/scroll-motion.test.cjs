@@ -8,7 +8,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'js/scroll-motion.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'css/scroll-motion.css'), 'utf8');
-const { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset } = require(path.join(root, 'js/scroll-motion.js'));
+const { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport } = require(path.join(root, 'js/scroll-motion.js'));
 let checks = 0;
 function equal(actual, expected, reason) { assert.deepEqual(actual, expected, reason); checks++; }
 equal(clamp(-1), 0); equal(clamp(2), 1); equal(clamp(NaN), 0);
@@ -31,11 +31,21 @@ equal(visualOffset(0, 1000, 3000, 500), -18);
 equal(visualOffset(5000, 1000, 0, 500), 18);
 equal(visualOffset(5000, 1000, 0, 500, 4), 4);
 equal(visualOffset(0, 0, 0, 0), 0);
+equal(allowsContinuousMotion({ cores: 8, memory: 8 }), true);
+for (const restricted of [{ reduced: true }, { saveData: true }, { narrow: true }, { coarse: true }, { touchPoints: 1 }, { cores: 4 }, { memory: 4 }]) equal(allowsContinuousMotion(restricted), false);
+equal(allowsContinuousMotion(), true, 'Unavailable device hints alone do not classify a desktop as weak');
+equal(overlapsViewport(100, 200, 0, 900), true);
+equal(overlapsViewport(1000, 200, 0, 900), false);
+equal(overlapsViewport(0, 200, 201, 900), false);
 
 class Element {
     constructor(tag, engine, attrs = {}, bounds = {}) {
         this.tagName = tag.toUpperCase(); this.engine = engine; this.attrs = { ...attrs };
-        this.children = []; this.parentNode = null; this.listeners = {}; this.style = { setProperty(key, value) { this[key] = value; } };
+        this.children = []; this.parentNode = null; this.listeners = {}; this.styleWrites = [];
+        const node = this;
+        this.style = { setProperty(key, value) { node.styleWrites.push([key, value]); this[key] = value; } };
+        let transform;
+        Object.defineProperty(this.style, 'transform', { get() { return transform; }, set(value) { node.styleWrites.push(['transform', value]); transform = value; } });
         this.bounds = { top: 0, width: 500, height: 60, ...bounds }; this.hidden = 'hidden' in attrs;
         this.className = attrs.class || '';
         this.classList = {
@@ -81,7 +91,7 @@ class Element {
     addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); }
     emit(name, event = {}) { (this.listeners[name] || []).forEach(callback => callback(event)); }
     focus() { this.engine.document.activeElement = this; }
-    getBoundingClientRect() { const top = this.bounds.top - this.engine.window.scrollY; return { ...this.bounds, top, bottom: top + this.bounds.height }; }
+    getBoundingClientRect() { this.engine.geometryReads++; const top = this.bounds.top - this.engine.window.scrollY; return { ...this.bounds, top, bottom: top + this.bounds.height }; }
     set innerHTML(markup) {
         this.children = [];
         const stack = [this];
@@ -95,21 +105,24 @@ class Element {
     }
 }
 
-function fixture({ home = true, reduced = false, io = true, raf = true } = {}) {
-    const engine = { observers: [], resizeObservers: [], frames: new Map(), timers: [], nextFrame: 1 };
+function fixture({ home = true, reduced = false, io = true, raf = true, narrow = false, coarse = false, touchPoints = 0, cores = 8, memory = 8, ioThrows = false, transformedCopy = false, transformedHero = false } = {}) {
+    const engine = { observers: [], resizeObservers: [], frames: new Map(), timers: [], nextFrame: 1, geometryReads: 0 };
     const media = matches => ({ matches, callbacks: [], addEventListener(name, callback) { this.callbacks.push(callback); }, change(value) { this.matches = value; this.callbacks.forEach(callback => callback()); } });
-    engine.reduce = media(reduced); engine.light = media(false);
+    engine.reduce = media(reduced); engine.narrow = media(narrow); engine.coarse = media(coarse);
+    engine.connection = { saveData: false, callbacks: [], addEventListener(name, callback) { this.callbacks.push(callback); }, change(value) { this.saveData = value; this.callbacks.forEach(callback => callback()); } };
     const events = {};
     engine.window = {
-        scrollY: 0, innerHeight: 900, innerWidth: 1440,
-        navigator: { connection: { saveData: false, addEventListener() {} } },
-        matchMedia: query => query.includes('reduced-motion') ? engine.reduce : engine.light,
+        scrollY: 0, innerHeight: 900, innerWidth: narrow ? 390 : 1440,
+        navigator: { connection: engine.connection, maxTouchPoints: touchPoints, hardwareConcurrency: cores, deviceMemory: memory },
+        matchMedia: query => query.includes('reduced-motion') ? engine.reduce : query.includes('coarse') ? engine.coarse : engine.narrow,
+        getComputedStyle: node => ({ transform: node.existingTransform || 'none' }),
         addEventListener(name, callback) { (events[name] ||= []).push(callback); },
         setTimeout(callback) { engine.timers.push(callback); },
         requestAnimationFrame: raf ? callback => { const id = engine.nextFrame++; engine.frames.set(id, callback); return id; } : undefined
     };
     const html = new Element('html', engine), body = new Element('body', engine, { class: home ? 'home-page' : 'brochure-page' });
     html.append(body); html.scrollHeight = body.scrollHeight = 6500; html.clientHeight = 900;
+    body.bounds.height = 6500;
     const documentEvents = {};
     engine.document = {
         documentElement: html, body, activeElement: body,
@@ -127,6 +140,7 @@ function fixture({ home = true, reduced = false, io = true, raf = true } = {}) {
         engine.sections = configurations.map(([className, top, height, id]) => create('section', main, { class: className, ...(id ? { id } : {}) }, { top, height }));
         const hero = engine.sections[0];
         engine.heroCopy = create('div', hero, { class: 'hero-copy' }, { top: 180, height: 450 });
+        if (transformedHero) engine.heroCopy.existingTransform = 'matrix(1,0,0,1,5,0)';
         create('h1', engine.heroCopy, {}, { top: 230 });
         const heroActions = create('div', engine.heroCopy, { class: 'hero-actions' });
         engine.cta = create('a', heroActions, { href: 'floor-plans.html', class: 'btn' });
@@ -138,6 +152,8 @@ function fixture({ home = true, reduced = false, io = true, raf = true } = {}) {
         engine.welcomeImage = create('img', welcomeVisual, { src: 'still.webp' }, { top: 1000, height: 450 });
         engine.seal = create('div', welcomeVisual, { class: 'welcome-seal' });
         engine.heading = create('h2', engine.sections[2], {}, { top: 1050, height: 120 });
+        engine.heading.textContent = 'Space for the life you want to live.';
+        if (transformedCopy) engine.heading.existingTransform = 'matrix(1,0,0,1,3,0)';
         create('p', engine.sections[2], {}, { top: 1200 });
         const homeUnit = create('a', engine.sections[3], { class: 'home-unit', href: 'floor-plans.html?unit=type-b' }, { top: 1900, height: 500 });
         engine.card = homeUnit;
@@ -165,14 +181,20 @@ function fixture({ home = true, reduced = false, io = true, raf = true } = {}) {
     const dialog = create('dialog', main);
     engine.dialogHeading = create('h2', dialog, {}, { top: 600 });
     if (io) engine.window.IntersectionObserver = class {
-        constructor(callback, options) { this.callback = callback; this.options = options; this.targets = []; engine.observers.push(this); }
+        constructor(callback, options) { if (ioThrows) throw new Error('Observer unavailable'); this.callback = callback; this.options = options; this.targets = []; this.unobserved = []; engine.observers.push(this); }
         observe(node) { this.targets.push(node); }
+        unobserve(node) { this.unobserved.push(node); this.targets = this.targets.filter(target => target !== node); }
         disconnect() { this.disconnected = true; this.targets = []; }
         emit(node, visible, rect = node.getBoundingClientRect()) { this.callback([{ target: node, isIntersecting: visible, boundingClientRect: rect }]); }
     };
-    engine.window.ResizeObserver = class { constructor(callback) { this.callback = callback; engine.resizeObservers.push(this); } observe() {} };
+    engine.window.ResizeObserver = class {
+        constructor(callback) { this.callback = callback; this.targets = []; engine.resizeObservers.push(this); }
+        observe(node) { this.targets.push(node); }
+        emit() { this.callback(this.targets.map(target => ({ target, contentRect: { width: target.bounds.width, height: target.bounds.height } }))); }
+    };
     engine.window.MutationObserver = class { constructor() { throw new Error('Dynamic preview must not be observed for reveals'); } };
     vm.runInNewContext(source, { window: engine.window, document: engine.document });
+    engine.resizeObservers.forEach(observer => observer.emit());
     engine.flush = () => { const callbacks = [...engine.frames.values()]; engine.frames.clear(); callbacks.forEach(callback => callback()); };
     engine.trigger = name => (events[name] || []).forEach(callback => callback());
     engine.documentEvent = name => (documentEvents[name] || []).forEach(callback => callback());
@@ -206,11 +228,12 @@ f.flush(); equal(f.frames.size, 0, 'No endless requestAnimationFrame loop runs w
 const observer = f.observers[0];
 observer.emit(f.heading, true, { top: 200, bottom: 320 });
 equal(f.heading.classList.contains('sm-visible'), true);
+equal(observer.targets.includes(f.heading), false, 'Finished reveals are unobserved');
 observer.emit(f.heading, false, { top: -140, bottom: -20 });
-equal(f.heading.classList.contains('sm-visible'), false);
-equal(f.heading.style['--sm-enter-y'], '-20px', 'Reentry from above has an upward offset');
+equal(f.heading.classList.contains('sm-visible'), true, 'Fast exits and reverse scrolling never hide read content');
 observer.emit(f.heading, true, { top: 60, bottom: 180 });
-equal(f.heading.classList.contains('sm-visible'), true, 'Reentry is reversible');
+equal(f.heading.classList.contains('sm-visible'), true, 'A repeated intersection remains visible');
+equal(f.heading.textContent, 'Space for the life you want to live.', 'Motion never rewrites editorial text');
 equal(f.card.classList.contains('sm-reveal'), false, 'Interactive card itself remains immediately usable');
 equal(f.cardTitle.classList.contains('sm-reveal'), false, 'Interactive card text is not hidden');
 f.document.activeElement = f.card;
@@ -223,7 +246,8 @@ for (const protectedNode of [f.formHeading, f.input, f.toolCopy, f.previewHeadin
 }
 f.preview.innerHTML = '<section><h2>A freshly rendered brochure</h2><p>Always usable.</p></section>';
 f.document.documentElement.scrollHeight = f.document.body.scrollHeight = 7500;
-f.resizeObservers[0].callback(); f.flush();
+f.document.body.bounds.height = 7500;
+f.resizeObservers[0].emit(); f.flush();
 equal(f.preview.querySelectorAll('.sm-reveal').length, 0, 'Brochure rerender does not register new motion targets');
 equal(f.document.body.querySelector('.sm-scroll-progress-fill').style.transform, 'scaleX(0.15152)', 'Progress remeasures a changed document height');
 f.reduce.change(true); f.flush();
@@ -235,6 +259,7 @@ equal(f.main.querySelectorAll('.sm-visual-layer').map(layer => layer.style['--sm
 equal(f.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true, 'Reduced motion restores all registered copy');
 f.reduce.change(false); f.flush();
 equal(f.document.documentElement.classList.contains('sm-enhanced'), true);
+equal(f.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true, 'Changing preferences back never re-hides restored content');
 equal(f.main.querySelectorAll('.sm-visual-frame').length, 2, 'Preference changes do not duplicate wrappers');
 const reduced = fixture({ reduced: true });
 equal(reduced.observers.length, 0, 'Reduced motion starts without reveal observation');
@@ -242,6 +267,9 @@ equal(reduced.heroCopy.style['--sm-hero-y'], '0px');
 const fallback = fixture({ io: false });
 equal(fallback.document.documentElement.classList.contains('sm-enhanced'), false);
 equal(fallback.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true, 'No IntersectionObserver leaves all content visible');
+const brokenObserver = fixture({ ioThrows: true });
+equal(brokenObserver.document.documentElement.classList.contains('sm-enhanced'), false, 'Observer construction failure fails open');
+equal(brokenObserver.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true);
 const noEnhancement = fixture({ raf: false });
 equal(noEnhancement.main.querySelectorAll('.sm-reveal').length, 0);
 equal(noEnhancement.document.body.querySelectorAll('.sm-scroll-progress').length, 0, 'Unsupported enhancement exits without hiding content');
@@ -249,7 +277,63 @@ const brochure = fixture({ home: false });
 equal(brochure.document.body.querySelectorAll('.sm-chapters').length, 0);
 equal(brochure.main.querySelectorAll('.sm-visual-frame').length, 0);
 equal(brochure.previewHeading.classList.contains('sm-reveal'), false);
+const desktop = fixture();
+desktop.scroll(100);
+const heroWrites = desktop.heroCopy.styleWrites.length;
+const frameReads = desktop.geometryReads;
+desktop.trigger('scroll'); desktop.flush();
+equal(desktop.heroCopy.styleWrites.length, heroWrites, 'An unchanged visible hero does not receive duplicate style writes');
+equal(desktop.geometryReads, frameReads, 'Ordinary scroll does not remeasure geometry');
+desktop.scroll(1500);
+const offscreenHeroWrites = desktop.heroCopy.styleWrites.length;
+desktop.scroll(1600);
+equal(desktop.heroCopy.styleWrites.length, offscreenHeroWrites, 'Offscreen hero is not updated');
+const farLayer = desktop.main.querySelectorAll('.sm-visual-layer')[1];
+equal(farLayer.styleWrites.length, 0, 'Offscreen image layers receive no scroll transforms');
+const progressFill = desktop.document.body.querySelector('.sm-scroll-progress-fill');
+const progressWrites = progressFill.styleWrites.length;
+desktop.trigger('scroll'); desktop.flush();
+equal(progressFill.styleWrites.length, progressWrites, 'Progress writes only when the formatted value changes');
+desktop.resizeObservers[0].emit(); desktop.resizeObservers[0].emit();
+equal(desktop.frames.size, 0, 'Unchanged ResizeObserver entries do not start a layout loop');
+const transformed = fixture({ transformedCopy: true, transformedHero: true });
+equal(transformed.heading.classList.contains('sm-shift-reveal'), false, 'Existing text transforms are preserved through a fade-only fallback');
+equal(transformed.heroCopy.classList.contains('sm-hero-copy'), false, 'An existing hero transform is never overwritten');
+for (const options of [{ narrow: true }, { coarse: true }, { touchPoints: 1 }, { cores: 4 }, { memory: 4 }]) {
+    const limited = fixture(options);
+    limited.scroll(200);
+    equal(limited.document.documentElement.classList.contains('sm-static-effects'), true, 'Limited devices keep continuous effects disabled');
+    equal(limited.heroCopy.style['--sm-hero-y'], '0px');
+    equal(limited.heroCopy.style['--sm-hero-opacity'], '1');
+    equal(limited.document.documentElement.classList.contains('sm-enhanced'), true, 'Limited devices retain one-shot editorial reveals');
+    equal(limited.document.body.querySelector('.sm-scroll-progress-fill').style.transform !== 'scaleX(0.00000)', true, 'Reading progress remains functional');
+}
+const phone = fixture({ narrow: true, coarse: true, touchPoints: 1 });
+const beforeToolbarReads = phone.geometryReads;
+phone.window.innerHeight = 960;
+phone.trigger('resize');
+phone.document.body.bounds.height += 60;
+phone.main.bounds.height += 60;
+phone.document.documentElement.scrollHeight = phone.document.body.scrollHeight = 6560;
+phone.resizeObservers[0].emit(); phone.flush();
+equal(phone.geometryReads, beforeToolbarReads, 'A mobile toolbar height-only resize does not walk section geometry');
+phone.main.bounds.height += 800;
+phone.document.body.bounds.height += 800;
+phone.resizeObservers[0].emit(); phone.flush();
+equal(phone.geometryReads > beforeToolbarReads, true, 'A real content-size change still refreshes geometry');
+phone.coarse.change(false); phone.window.navigator.maxTouchPoints = 0;
+phone.narrow.change(false); phone.window.innerWidth = 1440;
+phone.trigger('resize'); phone.flush();
+equal(phone.document.documentElement.classList.contains('sm-static-effects'), false, 'Capability changes can restore desktop effects');
+desktop.connection.change(true); desktop.flush();
+equal(desktop.document.documentElement.classList.contains('sm-reduced'), true, 'Live save-data preference is respected');
+equal(desktop.heroCopy.style['--sm-hero-y'], '0px');
+desktop.connection.change(false); desktop.flush();
+equal(desktop.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true, 'Save-data changes never replay reveals');
 assert(css.includes('@media(prefers-reduced-motion:reduce)')); checks++;
 assert(css.includes('@media(max-width:1279px) { .sm-chapters { display: none; } }')); checks++;
-assert(!css.includes('filter: blur') && !css.includes('scroll-snap')); checks++;
+assert(!css.includes('filter: blur') && !css.includes('scroll-snap') && !css.includes('clip-path')); checks++;
+assert(!/\btranslate\s*:/.test(css), 'Individual translate is not required by older Safari'); checks++;
+assert(!css.includes('will-change'), 'All editorial nodes are not permanently promoted to GPU layers'); checks++;
+assert(css.includes('.sm-enhanced .sm-shift-reveal { transform: none;'), 'Finished text does not retain a forced 3D layer'); checks++;
 console.log(`Scroll motion: ${checks} helper and DOM lifecycle assertions passed.`);

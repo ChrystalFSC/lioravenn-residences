@@ -35,7 +35,7 @@ class Page(HTMLParser):
             self.ids.add(attrs['id'])
         if tag == 'h1':
             self.h1s += 1
-        for key in ('href', 'src', 'poster', 'data-src'):
+        for key in ('href', 'src', 'poster', 'data-src', 'data-src-mobile'):
             if attrs.get(key):
                 self.links.append(attrs[key])
 

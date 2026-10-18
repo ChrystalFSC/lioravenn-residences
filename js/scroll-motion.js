@@ -20,7 +20,13 @@
         const travel = (viewportHeight + height) / 2;
         return travel > 0 ? Math.round(clamp((scrollY + viewportHeight / 2 - top - height / 2) / travel, -1, 1) * amplitude * 100) / 100 : 0;
     }
-    if (typeof module === 'object' && module.exports) module.exports = { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset };
+    function allowsContinuousMotion({ reduced = false, saveData = false, narrow = false, coarse = false, touchPoints = 0, cores, memory } = {}) {
+        return !reduced && !saveData && !narrow && !coarse && !touchPoints &&
+            !(Number.isFinite(cores) && cores > 0 && cores <= 4) &&
+            !(Number.isFinite(memory) && memory > 0 && memory <= 4);
+    }
+    const overlapsViewport = (top, height, scrollY, viewportHeight) => height > 0 && top + height > scrollY && top < scrollY + viewportHeight;
+    if (typeof module === 'object' && module.exports) module.exports = { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport };
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
     const main = document.querySelector('main');
     if (!main || typeof window.requestAnimationFrame !== 'function') return;
@@ -28,10 +34,14 @@
     const root = document.documentElement;
     const isHome = document.body.classList.contains('home-page');
     const reducedQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    const lightQuery = window.matchMedia?.('(max-width: 800px)');
+    const narrowQuery = window.matchMedia?.('(max-width: 1024px)');
+    const coarseQuery = window.matchMedia?.('(pointer: coarse)');
     const connection = window.navigator?.connection;
     const hero = isHome ? main.querySelector('.home-hero') : null;
     const heroCopy = hero?.querySelector('.hero-copy');
+    // Leave an existing transform alone instead of composing with an unknown
+    // animation or a page-specific hover effect.
+    const heroEffect = heroCopy && (!window.getComputedStyle || window.getComputedStyle(heroCopy).transform === 'none') ? heroCopy : null;
     const records = [];
     const lookup = new WeakMap();
     const visualLayers = [];
@@ -39,7 +49,10 @@
     let observer = null;
     let scheduled = 0;
     let needsMeasure = true;
+    let needsPageSize = true;
     let motionEnabled = false;
+    let continuousEnabled = false;
+    let viewportWidth = window.innerWidth;
     let viewportHeight = window.innerHeight;
     let pageHeight = 0;
     let headerHeight = 96;
@@ -48,7 +61,10 @@
     let chapterNav = null;
     let chapterButton = null;
     let chapterList = null;
-    let lastProgress = -1;
+    let lastProgress = '';
+    let lastHeroY = null;
+    let lastHeroOpacity = null;
+    let toolbarResize = null;
 
     const progress = document.createElement('div');
     progress.className = 'sm-scroll-progress';
@@ -129,9 +145,9 @@
             image.replaceWith(frame);
             layer.append(image);
             frame.append(layer);
-            visualLayers.push({ frame, layer, top: 0, height: 0 });
+            visualLayers.push({ frame, layer, top: 0, height: 0, lastOffset: null });
         });
-        heroCopy?.classList.add('sm-hero-copy');
+        heroEffect?.classList.add('sm-hero-copy');
     }
 
     const excluded = 'form,fieldset,dialog,[role="dialog"],[role="tabpanel"],[aria-live],[role="status"],[role="alert"],[hidden],[aria-hidden="true"],button,details,.brochure-workspace,#brochure-preview,.brochure-preview-column,#site-plan-explorer,.finance-section,.comparison-section,.viewing-section,.finder-filters,.finder-empty,.unit-card,.collection-toolbar,.room-story,.room-tabs,.hero-copy,.small-print,.collection-note,.finder-disclaimer,.site-plan-disclaimer,.life-disclaimer,.finder-sr-only,.sr-only,[data-motion="off"]';
@@ -145,10 +161,11 @@
         const section = element.closest('section') || main;
         const order = sectionCounts.get(section) || 0;
         sectionCounts.set(section, order + 1);
-        const record = { element, image };
+        const record = { element, image, seen: false };
         records.push(record);
         lookup.set(element, record);
         element.classList.add(image ? 'sm-image-reveal' : 'sm-reveal');
+        if (!image && (!window.getComputedStyle || window.getComputedStyle(element).transform === 'none')) element.classList.add('sm-shift-reveal');
         element.style.setProperty('--sm-delay', `${Math.min(order % 3 * 45, 90)}ms`);
     }
     main.querySelectorAll('.facts-inner > div,.life-values > article').forEach(element => addRecord(element));
@@ -159,43 +176,64 @@
         const active = document.activeElement;
         return active && active !== document.body && (element === active || element.contains(active) || active.contains(element));
     }
-    function setReveal(record, visible, bounds) {
-        const focused = hasFocus(record.element);
-        record.element.classList.toggle('sm-visible', visible || focused);
-        record.element.style.setProperty('--sm-enter-y', bounds.top < 0 ? '-20px' : '26px');
+    function finishReveal(record) {
+        if (record.seen) return;
+        record.seen = true;
+        record.element.classList.add('sm-visible');
+        observer?.unobserve?.(record.element);
     }
     function configureMotion() {
         motionEnabled = !reducedQuery?.matches && !connection?.saveData;
+        continuousEnabled = allowsContinuousMotion({
+            reduced: !motionEnabled, narrow: !!narrowQuery?.matches || window.innerWidth <= 1024,
+            coarse: !!coarseQuery?.matches, touchPoints: window.navigator?.maxTouchPoints || 0,
+            cores: window.navigator?.hardwareConcurrency, memory: window.navigator?.deviceMemory
+        });
         root.classList.toggle('sm-reduced', !motionEnabled);
+        root.classList.toggle('sm-static-effects', !continuousEnabled);
         root.classList.remove('sm-enhanced');
         observer?.disconnect();
         if (motionEnabled && typeof window.IntersectionObserver === 'function') {
-            observer = new window.IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    const record = lookup.get(entry.target);
-                    if (record) setReveal(record, entry.isIntersecting, entry.boundingClientRect);
+            try {
+                observer = new window.IntersectionObserver(entries => {
+                    entries.forEach(entry => {
+                        const record = lookup.get(entry.target);
+                        if (record && entry.isIntersecting) finishReveal(record);
+                    });
+                }, { threshold: 0, rootMargin: '96px 0px' });
+                records.forEach(record => {
+                    if (record.seen) return;
+                    const bounds = record.element.getBoundingClientRect();
+                    // Already-read and visible content is never hidden, including
+                    // browser scroll restoration and backwards anchor navigation.
+                    if (bounds.top < window.innerHeight + 96 || hasFocus(record.element)) finishReveal(record);
+                    else observer.observe(record.element);
                 });
-            }, { threshold: 0, rootMargin: '0px' });
-            records.forEach(record => {
-                const bounds = record.element.getBoundingClientRect();
-                setReveal(record, bounds.bottom > 0 && bounds.top < window.innerHeight, bounds);
-                observer.observe(record.element);
-            });
-            root.classList.add('sm-enhanced');
-        } else records.forEach(record => record.element.classList.add('sm-visible'));
+                root.classList.add('sm-enhanced');
+            } catch {
+                observer?.disconnect();
+                records.forEach(finishReveal);
+            }
+        } else records.forEach(finishReveal);
+        if (!continuousEnabled) resetContinuousEffects();
         invalidate();
     }
+    function readPageSize() {
+        pageHeight = Math.max(root.scrollHeight, document.body.scrollHeight, viewportHeight);
+        needsPageSize = false;
+    }
     function measure() {
+        viewportWidth = window.innerWidth || root.clientWidth;
         viewportHeight = window.innerHeight || root.clientHeight;
         const y = window.scrollY || 0;
-        pageHeight = Math.max(root.scrollHeight, document.body.scrollHeight, viewportHeight);
-        headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height || 0;
+        readPageSize();
         chapters.forEach(chapter => { chapter.top = chapter.element.getBoundingClientRect().top + y; });
-        if (hero) {
+        if (continuousEnabled && heroEffect) {
+            headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height || 0;
             const bounds = hero.getBoundingClientRect();
             heroBounds = { top: bounds.top + y, height: bounds.height };
         }
-        visualLayers.forEach(visual => {
+        if (continuousEnabled) visualLayers.forEach(visual => {
             const bounds = visual.frame.getBoundingClientRect();
             visual.top = bounds.top + y;
             visual.height = bounds.height;
@@ -205,10 +243,11 @@
     function renderFrame() {
         scheduled = 0;
         if (needsMeasure) measure();
+        else if (needsPageSize) readPageSize();
         const y = window.scrollY || 0;
-        const fraction = scrollProgress(y, pageHeight, viewportHeight);
+        const fraction = scrollProgress(y, pageHeight, viewportHeight).toFixed(5);
         if (fraction !== lastProgress) {
-            progressFill.style.transform = `scaleX(${fraction.toFixed(5)})`;
+            progressFill.style.transform = `scaleX(${fraction})`;
             lastProgress = fraction;
         }
         if (chapterNav) {
@@ -225,24 +264,61 @@
                 chapterButton.setAttribute('aria-label', `Page chapters. Current: ${String(index + 1).padStart(2, '0')}, ${chapter.label}. Show or hide chapters.`);
             }
         }
-        const light = !!lightQuery?.matches;
-        if (heroCopy && heroBounds) {
-            const state = motionEnabled ? heroMotion(y, heroBounds.top, heroBounds.height, headerHeight, light) : { y: 0, opacity: 1 };
-            heroCopy.style.setProperty('--sm-hero-y', `${state.y}px`);
-            heroCopy.style.setProperty('--sm-hero-opacity', String(state.opacity));
+        if (!continuousEnabled) return;
+        if (heroEffect && heroBounds && overlapsViewport(heroBounds.top, heroBounds.height, y, viewportHeight) && !hasFocus(heroEffect)) {
+            const state = heroMotion(y, heroBounds.top, heroBounds.height, headerHeight);
+            if (state.y !== lastHeroY) {
+                heroEffect.style.setProperty('--sm-hero-y', `${state.y}px`);
+                lastHeroY = state.y;
+            }
+            if (state.opacity !== lastHeroOpacity) {
+                heroEffect.style.setProperty('--sm-hero-opacity', String(state.opacity));
+                lastHeroOpacity = state.opacity;
+            }
         }
         visualLayers.forEach(visual => {
-            const offset = motionEnabled ? visualOffset(y, viewportHeight, visual.top, visual.height, light ? 4 : 18) : 0;
-            visual.layer.style.setProperty('--sm-image-y', `${offset}px`);
+            if (!overlapsViewport(visual.top, visual.height, y, viewportHeight)) return;
+            const offset = visualOffset(y, viewportHeight, visual.top, visual.height);
+            if (offset !== visual.lastOffset) {
+                visual.layer.style.setProperty('--sm-image-y', `${offset}px`);
+                visual.lastOffset = offset;
+            }
+        });
+    }
+    function resetContinuousEffects() {
+        if (heroEffect) {
+            if (lastHeroY !== 0) heroEffect.style.setProperty('--sm-hero-y', '0px');
+            if (lastHeroOpacity !== 1) heroEffect.style.setProperty('--sm-hero-opacity', '1');
+            lastHeroY = 0;
+            lastHeroOpacity = 1;
+        }
+        visualLayers.forEach(visual => {
+            if (visual.lastOffset !== 0) visual.layer.style.setProperty('--sm-image-y', '0px');
+            visual.lastOffset = 0;
         });
     }
     function schedule() {
         if (!scheduled) scheduled = window.requestAnimationFrame(renderFrame);
     }
-    function invalidate() { needsMeasure = true; schedule(); }
+    function invalidate() { needsMeasure = true; needsPageSize = true; schedule(); }
+    function onResize() {
+        const width = window.innerWidth || root.clientWidth;
+        const height = window.innerHeight || root.clientHeight;
+        if (Math.abs(width - viewportWidth) > 1) {
+            toolbarResize = null;
+            configureMotion();
+        } else {
+            const delta = Math.abs(height - viewportHeight);
+            viewportHeight = height;
+            needsPageSize = true;
+            if (continuousEnabled) needsMeasure = true;
+            else if (delta > 1) toolbarResize = { delta, time: Date.now() };
+            schedule();
+        }
+    }
 
     window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('resize', invalidate, { passive: true });
+    window.addEventListener('resize', onResize, { passive: true });
     window.addEventListener('load', invalidate, { once: true });
     window.addEventListener('pageshow', invalidate);
     window.addEventListener('lioravenn:layout-change', invalidate);
@@ -250,7 +326,8 @@
     document.addEventListener('focusin', () => {
         records.forEach(record => {
             if (hasFocus(record.element)) {
-                record.element.classList.add('sm-visible', 'sm-focus-held');
+                finishReveal(record);
+                record.element.classList.add('sm-focus-held');
             }
         });
     });
@@ -258,14 +335,37 @@
         records.forEach(record => { if (!hasFocus(record.element)) record.element.classList.remove('sm-focus-held'); });
     }));
     if (typeof window.ResizeObserver === 'function') {
-        const resizeObserver = new window.ResizeObserver(invalidate);
+        const sizes = new WeakMap();
+        const resizeObserver = new window.ResizeObserver(entries => {
+            let changed = false;
+            for (const entry of entries || []) {
+                const size = entry.contentRect;
+                if (!size) continue;
+                const previous = sizes.get(entry.target);
+                sizes.set(entry.target, { width: size.width, height: size.height });
+                if (!previous) continue;
+                const widthChanged = Math.abs(size.width - previous.width) > 1;
+                const heightDelta = Math.abs(size.height - previous.height);
+                if (!widthChanged && heightDelta <= 1) continue;
+                changed = true;
+                const toolbarOnly = !continuousEnabled && !widthChanged && toolbarResize &&
+                    Date.now() - toolbarResize.time < 400 && heightDelta <= toolbarResize.delta + 2;
+                if (!toolbarOnly) needsMeasure = true;
+            }
+            if (changed) {
+                needsPageSize = true;
+                schedule();
+            }
+        });
         resizeObserver.observe(main);
         resizeObserver.observe(document.body);
     }
     if (reducedQuery?.addEventListener) reducedQuery.addEventListener('change', configureMotion);
     else reducedQuery?.addListener?.(configureMotion);
-    if (lightQuery?.addEventListener) lightQuery.addEventListener('change', invalidate);
-    else lightQuery?.addListener?.(invalidate);
+    if (narrowQuery?.addEventListener) narrowQuery.addEventListener('change', configureMotion);
+    else narrowQuery?.addListener?.(configureMotion);
+    if (coarseQuery?.addEventListener) coarseQuery.addEventListener('change', configureMotion);
+    else coarseQuery?.addListener?.(configureMotion);
     connection?.addEventListener?.('change', configureMotion);
     document.fonts?.ready.then(invalidate);
     configureMotion();

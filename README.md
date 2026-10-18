@@ -32,7 +32,7 @@
 | Explore | Compare | Experience | Take away |
 | :---: | :---: | :---: | :---: |
 | **7 pages** | **3 home layouts** | **2 ambient video loops** | **Your own PDF brochure** |
-| One connected journey | Original Type A, B & C plans | 1080p MP4 delivery | Generated on your device |
+| One connected journey | Original Type A, B & C plans | Adaptive MP4 delivery | Generated on your device |
 
 ## The experience
 
@@ -45,7 +45,7 @@ The goal is to help a visitor move from *“I like the feeling of this place”*
 | **Explore your numbers** | Adjust down payment, rate, and term; compare up to three saved financing scenarios. |
 | **Make it personal** | Build an A4 brochure with selected homes, plans, financing estimates, a concept setting, and viewing questions. |
 | **Step inside** | Browse a filterable gallery, open larger photos, and switch between four spaces in the room explorer. |
-| **Move through the story** | Scroll up or down through reversible reveals, gentle image movement, reading progress, and desktop chapter navigation. |
+| **Move through the story** | Scroll through lightweight one-time reveals, gentle desktop image movement, reading progress, and chapter navigation. |
 
 ### A closer look
 
@@ -134,6 +134,7 @@ node tests/site-plan.test.cjs
 node tests/brochure-model.test.cjs
 node tests/brochure-pdf.test.cjs
 node tests/scroll-motion.test.cjs
+node tests/ambient-videos.test.cjs
 ```
 
 | Check | Focus |
@@ -143,7 +144,8 @@ node tests/scroll-motion.test.cjs
 | Concept site plan | Supported selections, shared settings, and DOM behavior. |
 | Brochure models | Financing validation, selection continuity, and safe note handling. |
 | PDF generation | Long-note pagination, multilingual notes, wrapping, and page bounds. |
-| Scroll motion | Both scroll directions, reduced-motion changes, focus, fallbacks, and exclusions for interactive tools. |
+| Scroll motion | One-time reveals, bidirectional chapter/progress updates, device limits, reduced-motion changes, focus, and layout fallbacks. |
+| Ambient video | Adaptive sources, visibility/buffering, blocked-autoplay recovery, source fallback, and live preferences. |
 
 Browser checks also cover desktop/phone layouts, full-resolution gallery images, silent video playback, and actual PDF downloads. Exported PDFs were rendered for visual inspection.
 

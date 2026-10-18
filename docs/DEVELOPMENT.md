@@ -40,9 +40,19 @@ This is a fictional development. The Solis / Type A, The Luma / Type B and The S
 
 The imagery is illustrative and is not a verified representation of a single development. The room explorer is an image-based experience, not a 360-degree tour. The original unrelated branded video is no longer presented as an Lioravenn tour.
 
-The homepage uses two silent inline autoplay loops edited from the original unbranded `videos/bg1.mp4`: a garden backdrop and an architectural lifestyle section. The default H.264 MP4 copies are delivered at 1920 × 1080 with less compression, alongside 1080p still-image posters and smaller WebM compatibility fallbacks. The HD copies are encoded directly from the original source; detail remains limited by that footage and its letterbox crop. Video sources load when their section enters the viewport, and playback pauses outside the viewport or in a hidden tab. Autoplay is disabled for reduced-motion and data-saving preferences. Both videos repeat without playback buttons or popup players.
+The homepage uses two silent inline loops edited from the original unbranded `videos/bg1.mp4`. Playback now selects a capped-bitrate 1280×720 MP4 for typical desktops, or a 960×540 MP4 for narrow/coarse-pointer screens, known constrained hardware and slower connections. Both are H.264 Main Level 3.1, 25 fps, yuv420p, square-pixel, silent files with faststart metadata. The original 1080p and previous smaller encodes remain preserved; they are not the default MP4 download. The 1920×1080 still-image posters remain in place.
 
-The homepage has reversible section reveals, subtle still-image movement, a reading-progress line and a desktop chapter control that follows the current section in either scroll direction. Other pages use restrained editorial reveals. Native scrolling, anchor links, keyboard access and existing tools stay usable; forms, dialogs, site-plan controls and live brochure previews are excluded. Motion is disabled for reduced-motion/data-saving preferences, and content stays visible if JavaScript or intersection observation is unavailable.
+| Delivery | Hero | Lifestyle | Combined |
+| :--- | ---: | ---: | ---: |
+| Previous default 1080p MP4 | 17.97 MB | 43.19 MB | 61.16 MB |
+| Balanced desktop MP4 | 2.85 MB | 8.31 MB | 11.16 MB |
+| Smaller MP4 | 1.77 MB | 5.25 MB | 7.02 MB |
+
+These are actual file sizes in decimal MB. The balanced pair transfers about **82% fewer bytes** than the previous default pair; this is a media-size comparison, not a measured frame-rate or page-load-speed claim. The source crop and shot timing are unchanged.
+
+Video sources start buffering within 280 pixels of the viewport, while playback is restricted to visible videos in a visible tab. Repeated play requests are coalesced, and a pending play that is interrupted by scrolling can resume safely. Persistent buffering or a source error can step down from balanced MP4 to the smaller MP4, then a supported WebM; exhausted candidates retain the poster. A rejected autoplay request waits for an ordinary user interaction instead of repeatedly downloading alternatives. Legacy media-query listeners are supported. Reduced-motion, data-saving and known 2G connections use still imagery. Enabling a restrictive network preference detaches active sources to stop continued buffering; a reduced-motion change alone preserves a ready clip for later reuse. Both loops stay muted and inline without playback buttons or popup players. The poster layer fades rather than making the video itself initially invisible.
+
+Editorial reveals now run once per page and remain visible when scrolling back. Image wipes no longer animate a full-size clip mask. Chapter navigation and reading progress still follow either scroll direction. Hero/image movement is limited to capable fine-pointer desktops, updates only visible layers, and skips unchanged writes. Narrow, touch and known constrained devices keep the stationary composition with short reveals. Ordinary scrolling does not measure section geometry; toolbar-height-only changes avoid full layout walks. Forms, dialogs, site-plan controls and live brochure previews remain excluded. Motion preferences update live, and content fails open when observation is unavailable.
 
 Higher-resolution concept photographs live in `img/enhanced/`. Six small source photos were faithfully restored with the built-in image-generation tool; their reconstructed texture is illustrative, not verified property detail. Preserved masters, exact output dimensions and restoration prompts are documented in that folder. The existing 1600×900 bedroom photograph also has a higher-quality WebP copy. Enhanced images are used consistently by pages, gallery rooms/lightbox, home cards and brochure/PDF export. Floor plans retain their original geometry and raster source detail; sharper drawings would require higher-resolution originals.
 
@@ -59,9 +69,10 @@ node tests/site-plan.test.cjs
 node tests/brochure-model.test.cjs
 node tests/brochure-pdf.test.cjs
 node tests/scroll-motion.test.cjs
+node tests/ambient-videos.test.cjs
 ```
 
-The static audit checks seven active pages, exact-case file references, anchors, headings, branding and JavaScript syntax. Tests cover home-finder interactions, site-plan rules and DOM behavior, finance continuity/validation, safe data handling, PDF pagination and 74 scroll-motion assertions. Browser checks cover the connected site-plan/brochure journey, invalid and empty states, desktop/phone layouts, reversible chapter navigation, full-resolution gallery images and actual PDF downloads. Exported PDFs were rendered for visual inspection, including long multilingual questions and the enhanced image cover.
+The static audit checks seven active pages, exact-case file references, anchors, headings, branding and JavaScript syntax. Tests cover home-finder interactions, site-plan rules and DOM behavior, finance continuity/validation, safe data handling, PDF pagination and 132 scroll-motion assertions. The ambient-video suite covers 18 playback/resource lifecycle scenarios with 216 assertions; these use deterministic DOM/media fixtures rather than measuring real-device frame rate. Browser checks cover the connected site-plan/brochure journey, invalid and empty states, desktop/phone layouts, bidirectional chapter navigation, full-resolution gallery images and actual PDF downloads. Exported PDFs were rendered for visual inspection, including long multilingual questions and the enhanced image cover.
 
 The pinned jsPDF 4.2.1 browser bundle and MIT license are in `js/vendor/`, with registry provenance and the verified package hash in that directory's README. PDF generation runs on the visitor's device; there is no upload or document service.
 
@@ -77,9 +88,10 @@ To recreate the edited video clips and posters, supply an existing FFmpeg execut
 ```powershell
 python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe
 python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe --hd
+python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe --adaptive
 ```
 
-The first command recreates the smaller H.264 MP4 / VP8 WebM copies; `--hd` creates the two 1080p MP4 copies used by the page. Both modes refresh the 1080p posters. The preparation script preserves the original video, trims black transition frames and crops the baked letterbox bars. No video-processing dependency is needed to run the finished website.
+The first command recreates the previous H.264 MP4 / VP8 WebM copies; `--hd` creates the preserved 1080p MP4s. Those two modes refresh the 1080p posters. `--adaptive` creates only the four new default/fallback MP4s, checks their browser-compatible format and full decoding, and verifies that existing media/posters remain unchanged. The preparation script preserves the original video, trims black transition frames and crops the baked letterbox bars. No video-processing dependency is needed to run the finished website.
 
 ## Original academic project
 
