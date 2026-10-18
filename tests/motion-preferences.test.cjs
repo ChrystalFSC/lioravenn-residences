@@ -97,7 +97,7 @@ function fixture({ saved = null, reduced = false, saveData = false, readBlocked 
 
 test('pure normalization rejects unsupported and malformed persisted values', () => {
   const inputs = ['auto', 'on', 'off', '', 'ON', null, undefined, {}, true];
-  assert.deepEqual(inputs.map(normalizeMode), ['auto', 'on', 'off', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto']);
+  assert.deepEqual(inputs.map(normalizeMode), ['auto', 'on', 'off', 'on', 'on', 'on', 'on', 'on', 'on']);
 });
 
 test('explicit motion overrides OS reduction while Save-Data remains authoritative', () => {
@@ -108,12 +108,14 @@ test('explicit motion overrides OS reduction while Save-Data remains authoritati
   assert.deepEqual(['auto', 'on', 'off'].map(mode => motionEnabled(mode, false, true)), [false, false, false]);
 });
 
-test('runtime initializes the API and root attribute from stored preferences', () => {
+test('fresh visits default to On while valid saved Auto and Off remain authoritative', () => {
   assert.deepEqual([
-    fixture().state(), fixture({ saved: 'off' }).state(),
+    fixture().state(), fixture({ reduced: true }).state(), fixture({ saved: 'off' }).state(),
     fixture({ saved: 'on', reduced: true }).state(),
+    fixture({ saved: 'auto', reduced: true }).state(), fixture({ saved: 'auto' }).state(),
     fixture({ saved: 'invalid', reduced: true }).state()
-  ], [['auto', true, 'auto'], ['off', false, 'off'], ['on', true, 'on'], ['auto', false, 'auto']]);
+  ], [['on', true, 'on'], ['on', true, 'on'], ['off', false, 'off'], ['on', true, 'on'],
+    ['auto', false, 'auto'], ['auto', true, 'auto'], ['on', true, 'on']]);
 });
 
 test('an explicit demo link overrides a saved preference while invalid queries do not', () => {
@@ -127,7 +129,7 @@ test('an explicit demo link overrides a saved preference while invalid queries d
 });
 
 test('setMode persists and publishes its updated state synchronously only on change', () => {
-  const f = fixture({ reduced: true });
+  const f = fixture({ saved: 'auto', reduced: true });
   const observed = [];
   f.window.addEventListener(CHANGE, () => observed.push(f.state()));
   assert.equal(f.api.setMode('on'), 'on');
@@ -135,7 +137,7 @@ test('setMode persists and publishes its updated state synchronously only on cha
   assert.deepEqual(f.writes, [[KEY, 'on']]);
   f.api.setMode('on');
   assert.equal(observed.length, 1, 'Re-selecting a mode must not retrigger playback consumers');
-  assert.equal(f.api.setMode('invalid'), 'auto');
+  assert.equal(f.api.setMode('invalid'), 'on');
 });
 
 test('changing a demo-link mode removes only that override so refresh retains the saved choice', () => {
@@ -152,7 +154,7 @@ test('changing a demo-link mode removes only that override so refresh retains th
 });
 
 test('automatic mode follows live OS changes and explicit on survives them', () => {
-  const f = fixture();
+  const f = fixture({ saved: 'auto' });
   const observed = [];
   f.window.addEventListener(CHANGE, () => observed.push(f.api.isEnabled()));
   f.motion(true);
@@ -164,12 +166,11 @@ test('automatic mode follows live OS changes and explicit on survives them', () 
 });
 
 test('blocked storage does not prevent initialization or a session preference', () => {
-  const denied = fixture({ saved: 'off', readBlocked: true, writeBlocked: true });
-  assert.deepEqual(denied.state(), ['auto', true, 'auto']);
+  const denied = fixture({ saved: 'off', reduced: true, readBlocked: true, writeBlocked: true });
+  assert.deepEqual(denied.state(), ['on', true, 'on']);
   denied.api.setMode('off');
   assert.deepEqual(denied.state(), ['off', false, 'off']);
-  const unavailable = fixture({ storageUnavailable: true });
-  unavailable.api.setMode('on');
+  const unavailable = fixture({ reduced: true, storageUnavailable: true });
   assert.deepEqual(unavailable.state(), ['on', true, 'on']);
 });
 
@@ -180,12 +181,12 @@ test('cross-tab changes normalize state without echoing another storage write', 
   f.saved('off');
   f.saved('on', 'unrelated-preference');
   f.saved(null);
-  assert.deepEqual(observed, [['off', false, 'off'], ['auto', true, 'auto']]);
+  assert.deepEqual(observed, [['off', false, 'off'], ['on', true, 'on']]);
   assert.deepEqual(f.writes, [], 'Storage notifications must not write back and loop across tabs');
 });
 
 test('legacy MediaQueryList listeners still update automatic motion', () => {
-  const f = fixture({ legacy: true });
+  const f = fixture({ saved: 'auto', legacy: true });
   f.motion(true);
   assert.deepEqual(f.state(), ['auto', false, 'auto']);
 });

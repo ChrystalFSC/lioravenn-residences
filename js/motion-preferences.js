@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const normalizeMode = value => ['auto', 'on', 'off'].includes(value) ? value : 'auto';
+  const normalizeMode = value => ['auto', 'on', 'off'].includes(value) ? value : 'on';
   const motionEnabled = (mode, reduced, saveData = false) => !saveData && (mode === 'on' || (mode !== 'off' && !reduced));
   if (typeof module === 'object' && module.exports) module.exports = { normalizeMode, motionEnabled };
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -9,10 +9,10 @@
   const key = 'lioravenn-motion-preference';
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   const connection = window.navigator?.connection;
-  let mode = 'auto';
+  let mode = 'on';
   try { mode = normalizeMode(window.localStorage.getItem(key)); } catch { /* Private browsing can deny storage. */ }
-  // A labelled "motion on" link is also an explicit choice, useful when opening
-  // the demo on a different device. Ordinary visits still follow device settings.
+  // Ordinary visits start with motion on. Saved choices and explicit demo-link
+  // preferences take precedence over that default.
   if (typeof URLSearchParams === 'function') {
     const requested = new URLSearchParams(window.location?.search || '').get('motion');
     if (['auto', 'on', 'off'].includes(requested)) {
@@ -75,7 +75,7 @@
 
   function playbackStatus() {
     return JSON.stringify({
-      version: '20261018-motion4',
+      version: '20261019-default-motion',
       motion: mode, enabled: isEnabled(), reducedMotion: !!reduced?.matches,
       saveData: !!connection?.saveData, connection: connection?.effectiveType || 'unknown',
       browser: window.navigator?.userAgent || 'unknown',
@@ -94,7 +94,7 @@
   function mount() {
     panel = document.createElement('details');
     panel.className = 'motion-settings';
-    panel.innerHTML = '<summary>Motion <span data-motion-label></span><span class="motion-toggle" aria-hidden="true">+</span></summary><div class="motion-options"><label for="motion-preference">Website motion</label><select id="motion-preference"><option value="auto">Auto — follow device</option><option value="on">On — enable motion</option><option value="off">Off — still imagery</option></select><p data-motion-status role="status"></p><button type="button" class="motion-copy">Copy playback status</button><p class="motion-copy-note">If motion still stops, copy this status and share it with the website developer.</p></div>';
+    panel.innerHTML = '<summary>Motion <span data-motion-label></span><span class="motion-toggle" aria-hidden="true">+</span></summary><div class="motion-options"><label for="motion-preference">Website motion</label><select id="motion-preference"><option value="on">On — default</option><option value="auto">Auto — follow device</option><option value="off">Off — still imagery</option></select><p data-motion-status role="status"></p><button type="button" class="motion-copy">Copy playback status</button><p class="motion-copy-note">If motion still stops, copy this status and share it with the website developer.</p></div>';
     document.body.append(panel);
     selector = panel.querySelector('select');
     label = panel.querySelector('[data-motion-label]');
