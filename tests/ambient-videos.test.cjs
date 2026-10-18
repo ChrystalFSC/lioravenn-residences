@@ -12,6 +12,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const api = require(path.join(root, 'js/ambient-videos.js'));
 let assertions = 0;
 let cases = 0;
+const failures = [];
 function equal(actual, expected, message) { assert.deepEqual(actual, expected, message); assertions++; }
 function ok(value, message) { assert.ok(value, message); assertions++; }
 async function settle() { for (let i = 0; i < 10; i++) await Promise.resolve(); }
@@ -105,6 +106,15 @@ function fixture(options = {}) {
     video.bounds = { top: (options.positions || [100, 2000])[index] ?? 2000, height: 400, width: 1000 };
     video.paused = true;
     video.readyState = 0;
+    let mediaTime = 0;
+    let playingSince = null;
+    let clockFrozen = false;
+    Object.defineProperty(video, 'currentTime', {
+      get: () => mediaTime + (playingSince === null || clockFrozen ? 0 : (clock.now - playingSince) / 1000),
+      set: value => { mediaTime = Number(value); if (playingSince !== null) playingSince = clock.now; }
+    });
+    video.freezePlaybackClock = () => { mediaTime = video.currentTime; playingSince = clock.now; clockFrozen = true; };
+    video.resumePlaybackClock = () => { clockFrozen = false; playingSince = video.paused ? null : clock.now; };
     video.autoplay = true;
     video.loads = [];
     video.attempts = [];
@@ -123,8 +133,13 @@ function fixture(options = {}) {
     video.removeAttribute = name => { video.removedAttributes.push(name); delete video.attrs[name]; };
     video.canPlayType = type => (options.unsupported || []).includes(type) ? '' : 'probably';
     video.getBoundingClientRect = () => ({ ...video.bounds, bottom: video.bounds.top + video.bounds.height });
-    video.load = () => { video.loads.push(video.src); video.currentSrc = video.src; video.readyState = 0; video.paused = true; };
-    video.pause = () => { video.pauseCalls++; video.paused = true; };
+    video.load = () => {
+      video.loads.push(video.src); video.currentSrc = video.src;
+      playingSince = null; mediaTime = 0; video.readyState = 0; video.paused = true;
+    };
+    video.pause = () => {
+      video.pauseCalls++; mediaTime = video.currentTime; playingSince = null; video.paused = true;
+    };
     video.play = () => {
       const plan = video.playPlan.shift() || video.defaultPlay;
       const attempt = { gesture: inGesture, settled: false, src: video.src };
@@ -138,6 +153,7 @@ function fixture(options = {}) {
         attempt.settled = true;
         video.paused = false;
         video.readyState = 4;
+        if (playingSince === null) playingSince = clock.now;
         video.emit('playing');
         resolve();
       };
@@ -145,7 +161,9 @@ function fixture(options = {}) {
         if (attempt.settled) return;
         attempt.settled = true;
         // An old source's rejected promise cannot pause a newer playback.
-        if (video.attempts.at(-1) === attempt && attempt.src === video.src) video.paused = true;
+        if (video.attempts.at(-1) === attempt && attempt.src === video.src) {
+          mediaTime = video.currentTime; playingSince = null; video.paused = true;
+        }
         reject(mediaError(name));
       };
       if (plan === 'resolve') Promise.resolve().then(attempt.resolve);
@@ -184,9 +202,15 @@ function fixture(options = {}) {
 }
 
 async function test(name, work) {
-  await work();
   cases++;
-  console.log(`PASS ${name}`);
+  try {
+    await work();
+    console.log(`PASS ${name}`);
+  } catch (error) {
+    failures.push({ name, error });
+    console.error(`FAIL ${name}`);
+    console.error(error);
+  }
 }
 
 (async () => {
@@ -430,5 +454,96 @@ async function test(name, work) {
     equal(f.videos[1].loads.length, 0, 'Recovery must not eagerly download a distant second video');
   });
 
-  console.log(`PASS: ${cases} ambient-video scenarios; ${assertions} assertions.`);
+  await test('an unexpected native pause while visible resumes without replacing its buffered source', async () => {
+    const f = fixture(); await settle();
+    const url = f.videos[0].src;
+    f.videos[0].pause(); f.videos[0].emit('pause');
+    await f.clock.tick(10000);
+    equal(f.videos[0].paused, false, 'A visible ambient video must recover from an unexpected native pause');
+    equal(f.playing(), true);
+    equal(f.videos[0].src, url); equal(f.videos[0].requestedSources.length, 1);
+    equal(f.videos[0].attempts.length, 2, 'Native-pause recovery should make one bounded same-source retry');
+  });
+
+  await test('a visible startup AbortError with ready media cannot strand playback', async () => {
+    const f = fixture({ plans: [['abort']] });
+    f.videos[0].readyState = 4;
+    await settle(); await f.clock.tick(10000);
+    equal(f.videos[0].paused, false, 'An aborted visible startup needs a bounded retry even when readyState is already high');
+    equal(f.playing(), true); equal(f.videos[0].attempts.length, 2);
+    equal(f.videos[0].requestedSources.length, 1, 'Abort recovery must reuse the buffered source');
+  });
+
+  await test('a ready but unresolved play promise remains recoverable by a user gesture', async () => {
+    const f = fixture({ plans: [['pending', 'pending', 'resolve']] });
+    f.videos[0].readyState = 4; f.videos[0].emit('canplay');
+    await f.clock.tick(20000);
+    const automaticAttempts = f.videos[0].attempts.length;
+    ok(automaticAttempts <= 2, 'A deferred ready clip gets at most one automatic same-source retry');
+    await f.clock.tick(60000);
+    equal(f.videos[0].attempts.length, automaticAttempts, 'Automatic recovery must settle instead of retrying forever');
+    equal(f.videos[0].requestedSources.length, 1, 'Deferred ready media does not justify downloading another encode');
+    f.gesture('pointerup');
+    ok(f.videos[0].attempts.length >= 2, 'A ready unresolved play promise must not deduplicate all future retries forever');
+    equal(f.videos[0].attempts.at(-1).gesture, true, 'After bounded automatic recovery the next retry must run inside activation');
+    await settle(); equal(f.videos[0].paused, false); equal(f.playing(), true);
+    equal(f.videos[0].requestedSources.length, 1, 'A policy-deferred play must not cascade through other downloads');
+  });
+
+  await test('native-pause recovery stays asleep while hidden or reduced-motion is enabled', async () => {
+    for (const restrict of [f => f.hidden(true), f => f.motion(true)]) {
+      const f = fixture(); await settle();
+      restrict(f); f.videos[0].emit('pause'); await settle();
+      const before = f.videos[0].attempts.length;
+      await f.clock.tick(60000);
+      equal(f.videos[0].paused, true);
+      equal(f.videos[0].attempts.length, before, 'The health controller must not fight explicit visibility/motion pauses');
+      equal(f.videos[0].requestedSources.length, 1);
+      equal(f.clock.jobs.size, 0, 'Restricted media should not keep a recovery timer alive');
+    }
+  });
+
+  await test('a frozen decoded clock gets one bounded retry, then a gesture can restore real progress', async () => {
+    const f = fixture(); await settle(); await f.clock.tick(2000);
+    const video = f.videos[0];
+    video.freezePlaybackClock();
+    const stoppedAt = video.currentTime;
+    equal(video.paused, false); equal(video.readyState, 4);
+    await f.clock.tick(20000);
+    equal(video.currentTime, stoppedAt, 'Decode readiness and playing events alone must not count as progress');
+    equal(video.attempts.length, 2, 'Persistent frozen playback gets exactly one automatic same-source retry');
+    equal(video.paused, true); equal(f.playing(), false);
+    equal(video.requestedSources.length, 1);
+    await f.clock.tick(60000); equal(video.attempts.length, 2, 'A frozen decoder must not create an endless retry loop');
+    equal(f.clock.jobs.size, 0, 'The blocked clip should stop its health timer while waiting for activation');
+    video.resumePlaybackClock(); f.gesture('pointerup'); await settle(); await f.clock.tick(3000);
+    equal(video.attempts.length, 3); equal(video.attempts[2].gesture, true);
+    equal(video.paused, false); equal(f.playing(), true);
+    ok(video.currentTime > stoppedAt, 'The successful retry must advance the media clock');
+    equal(video.requestedSources.length, 1);
+    // Real progress, rather than another playing event, replenishes the budget.
+    video.freezePlaybackClock(); await f.clock.tick(3500);
+    equal(video.attempts.length, 4, 'After genuine progress, a later independent freeze can receive one automatic retry');
+    equal(video.requestedSources.length, 1);
+  });
+
+  await test('late pending rejections cannot poison a healthy same-source recovery', async () => {
+    for (const name of ['NotAllowedError', 'NotSupportedError']) {
+      const f = fixture({ plans: [['pending', 'resolve']] });
+      const video = f.videos[0], abandoned = video.attempts[0];
+      video.readyState = 4;
+      await f.clock.tick(4000);
+      equal(video.attempts.length, 2); equal(video.paused, false); equal(f.playing(), true);
+      const url = video.currentSrc;
+      abandoned.reject(name); await settle(); f.gesture('click'); await f.clock.tick(3000);
+      equal(video.currentSrc, url); equal(video.paused, false); equal(f.playing(), true);
+      equal(video.attempts.length, 2, `${name} from an old pending play must not block or retry its healthy replacement`);
+      equal(video.requestedSources.length, 1, 'Same-source recovery must isolate old callbacks without an encode download');
+    }
+  });
+
+  if (failures.length) {
+    console.error(`FAIL: ${failures.length} of ${cases} ambient-video scenarios; ${assertions} passing assertions.`);
+    process.exitCode = 1;
+  } else console.log(`PASS: ${cases} ambient-video scenarios; ${assertions} assertions.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -42,13 +42,58 @@
   function clearTimers(entry) {
     window.clearTimeout(entry.posterTimer);
     window.clearTimeout(entry.stallTimer);
-    entry.posterTimer = entry.stallTimer = 0;
+    window.clearTimeout(entry.healthTimer);
+    entry.posterTimer = entry.stallTimer = entry.healthTimer = 0;
   }
   function pause(entry, poster = false) {
     entry.video.autoplay = false;
     entry.video.pause();
     clearTimers(entry);
     if (poster) showPoster(entry);
+  }
+  function retryReady(entry, gesture = false) {
+    // A loaded clip can still have an abandoned play() promise. Invalidate its
+    // callbacks and resume the same buffered resource, without another download.
+    clearTimers(entry);
+    entry.generation++;
+    entry.pending = null;
+    entry.resumePending = entry.blocked = false;
+    entry.quietTicks = 0;
+    entry.lastTime = Number(entry.video.currentTime) || 0;
+    entry.video.autoplay = false;
+    entry.video.pause();
+    requestPlay(entry, gesture);
+  }
+  function watchHealth(entry) {
+    if (!shouldPlay(entry) || entry.blocked || entry.healthTimer) return;
+    const generation = entry.generation;
+    entry.healthTimer = window.setTimeout(() => {
+      entry.healthTimer = 0;
+      if (generation !== entry.generation || !shouldPlay(entry) || entry.blocked) return;
+      const time = Number(entry.video.currentTime) || 0;
+      const advancing = Math.abs(time - entry.lastTime) > 0.02;
+      entry.lastTime = time;
+      if (advancing && !entry.video.paused) {
+        entry.quietTicks = entry.readyRetries = 0;
+      } else entry.quietTicks++;
+      // readyState alone does not prove playback: Chrome may pause a decoded
+      // clip, or leave play() pending, without reporting a network/buffer error.
+      if (entry.video.readyState >= 3 && (entry.video.paused || entry.quietTicks >= 3)) {
+        showPoster(entry);
+        if (entry.readyRetries >= 1) {
+          entry.blocked = true;
+          entry.resumePending = false;
+          entry.generation++;
+          entry.pending = null;
+          pause(entry, true);
+          return;
+        }
+        entry.readyRetries++;
+        retryReady(entry);
+        return;
+      }
+      watchHealth(entry);
+    }, 1000);
   }
   function watchBuffer(entry) {
     if (!shouldPlay(entry) || entry.blocked || entry.stallTimer) return;
@@ -68,6 +113,7 @@
     entry.pending = null;
     entry.resumePending = false;
     entry.blocked = false;
+    entry.quietTicks = entry.readyRetries = entry.lastTime = 0;
     entry.index = index;
     const choice = entry.choices[index];
     showPoster(entry);
@@ -93,6 +139,7 @@
   function requestPlay(entry, gesture = false) {
     if (!shouldPlay(entry) || (!gesture && entry.blocked)) return;
     if (!prepare(entry)) return;
+    watchHealth(entry);
     if (entry.pending) { entry.resumePending = true; return; }
     if (!entry.video.paused && entry.video.readyState >= 3) return;
     entry.blocked = false;
@@ -125,7 +172,8 @@
         entry.resumePending = false;
         pause(entry, true);
       } else if (error?.name !== 'AbortError' && shouldPlay(entry)) recover(entry);
-      // AbortError is expected after leaving the viewport or changing a source.
+      // Aborts caused by leaving view are harmless. If still visible, the health
+      // check above also covers a ready clip whose aborted start never resumes.
     }
   }
   function sync(entry) {
@@ -155,7 +203,7 @@
     }));
     const entry = { video, sources, surface: video.closest('[data-video-surface]'), visible: false, near: false,
       failed: false, loaded: false, choices: [], index: -1, generation: 0, pending: null, resumePending: false,
-      blocked: false, posterTimer: 0, stallTimer: 0 };
+      blocked: false, posterTimer: 0, stallTimer: 0, healthTimer: 0, lastTime: 0, quietTicks: 0, readyRetries: 0 };
     entries.push(entry);
     lookup.set(video, entry);
     video.addEventListener('playing', () => {
@@ -163,6 +211,11 @@
       clearTimers(entry);
       entry.blocked = false;
       entry.surface?.classList.add('is-playing');
+      watchHealth(entry);
+    });
+    video.addEventListener('pause', () => {
+      showPoster(entry);
+      watchHealth(entry);
     });
     video.addEventListener('waiting', () => watchBuffer(entry));
     video.addEventListener('stalled', () => { if (video.readyState < 3) watchBuffer(entry); });
@@ -227,7 +280,9 @@
   else reducedMotion?.addListener?.(preferenceChange);
   connection?.addEventListener?.('change', preferenceChange);
   const retryBlocked = () => entries.forEach(entry => {
-    if (entry.blocked && shouldPlay(entry)) requestPlay(entry, true);
+    if (!shouldPlay(entry) || !(entry.blocked || entry.video.paused || (entry.pending && entry.quietTicks >= 3))) return;
+    entry.readyRetries = 0;
+    retryReady(entry, true);
   });
   document.addEventListener('pointerup', retryBlocked, { passive: true });
   document.addEventListener('touchend', retryBlocked, { passive: true });
