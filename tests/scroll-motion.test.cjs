@@ -105,7 +105,7 @@ class Element {
     }
 }
 
-function fixture({ home = true, reduced = false, io = true, raf = true, narrow = false, coarse = false, touchPoints = 0, cores = 8, memory = 8, ioThrows = false, transformedCopy = false, transformedHero = false } = {}) {
+function fixture({ home = true, reduced = false, io = true, raf = true, narrow = false, coarse = false, touchPoints = 0, cores = 8, memory = 8, ioThrows = false, transformedCopy = false, transformedHero = false, motionMode = null } = {}) {
     const engine = { observers: [], resizeObservers: [], frames: new Map(), timers: [], nextFrame: 1, geometryReads: 0 };
     const media = matches => ({ matches, callbacks: [], addEventListener(name, callback) { this.callbacks.push(callback); }, change(value) { this.matches = value; this.callbacks.forEach(callback => callback()); } });
     engine.reduce = media(reduced); engine.narrow = media(narrow); engine.coarse = media(coarse);
@@ -121,6 +121,14 @@ function fixture({ home = true, reduced = false, io = true, raf = true, narrow =
         requestAnimationFrame: raf ? callback => { const id = engine.nextFrame++; engine.frames.set(id, callback); return id; } : undefined
     };
     const html = new Element('html', engine), body = new Element('body', engine, { class: home ? 'home-page' : 'brochure-page' });
+    if (motionMode !== null) {
+        engine.motionMode = motionMode;
+        html.setAttribute('data-motion-preference', motionMode);
+        engine.window.LioravennMotion = {
+            getMode: () => engine.motionMode,
+            isEnabled: () => engine.motionMode === 'on' || (engine.motionMode !== 'off' && !engine.reduce.matches)
+        };
+    }
     html.append(body); html.scrollHeight = body.scrollHeight = 6500; html.clientHeight = 900;
     body.bounds.height = 6500;
     const documentEvents = {};
@@ -196,7 +204,13 @@ function fixture({ home = true, reduced = false, io = true, raf = true, narrow =
     vm.runInNewContext(source, { window: engine.window, document: engine.document });
     engine.resizeObservers.forEach(observer => observer.emit());
     engine.flush = () => { const callbacks = [...engine.frames.values()]; engine.frames.clear(); callbacks.forEach(callback => callback()); };
-    engine.trigger = name => (events[name] || []).forEach(callback => callback());
+    engine.trigger = name => (events[name] || []).forEach(callback => callback({ type: name }));
+    engine.setMotion = mode => {
+        engine.motionMode = mode;
+        html.setAttribute('data-motion-preference', mode);
+        engine.trigger('lioravenn:motion-change');
+        engine.flush();
+    };
     engine.documentEvent = name => (documentEvents[name] || []).forEach(callback => callback());
     engine.scroll = y => { engine.window.scrollY = y; engine.trigger('scroll'); engine.flush(); };
     engine.flush();
@@ -330,6 +344,51 @@ equal(desktop.document.documentElement.classList.contains('sm-reduced'), true, '
 equal(desktop.heroCopy.style['--sm-hero-y'], '0px');
 desktop.connection.change(false); desktop.flush();
 equal(desktop.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true, 'Save-data changes never replay reveals');
+const enabledByChoice = fixture({ reduced: true, motionMode: 'on' });
+equal(enabledByChoice.document.documentElement.classList.contains('sm-reduced'), false, 'Explicit On can enable motion while the OS asks for reduced motion');
+equal(enabledByChoice.document.documentElement.classList.contains('sm-enhanced'), true);
+enabledByChoice.scroll(200);
+equal(enabledByChoice.heroCopy.style['--sm-hero-y'] !== '0px', true, 'A capable desktop can restore continuous effects through explicit On');
+enabledByChoice.reduce.change(false); enabledByChoice.reduce.change(true); enabledByChoice.flush();
+equal(enabledByChoice.document.documentElement.classList.contains('sm-reduced'), false, 'The shared explicit preference takes precedence over later OS changes');
+enabledByChoice.setMotion('off');
+equal(enabledByChoice.document.documentElement.classList.contains('sm-reduced'), true, 'Explicit Off disables motion independently of the OS');
+equal(enabledByChoice.heroCopy.style['--sm-hero-y'], '0px');
+enabledByChoice.setMotion('auto');
+equal(enabledByChoice.document.documentElement.classList.contains('sm-reduced'), true, 'Automatic mode returns to the OS preference');
+const reenabled = fixture({ reduced: true, motionMode: 'auto' });
+const visibleFact = reenabled.main.querySelector('.facts-inner').children[0];
+equal(reenabled.heading.classList.contains('sm-visible'), true, 'The initial reduced-motion fallback leaves below-viewport content visible');
+reenabled.setMotion('on');
+equal(visibleFact.classList.contains('sm-visible'), true, 'Enabling never hides content that is already visible');
+equal(reenabled.heading.classList.contains('sm-visible'), false, 'Explicit On re-arms never-read content below the viewport');
+equal(reenabled.observers.at(-1).targets.includes(reenabled.heading), true, 'Re-armed copy is observed for its first entry');
+reenabled.observers.at(-1).emit(reenabled.heading, true);
+reenabled.setMotion('off'); reenabled.setMotion('on');
+equal(reenabled.heading.classList.contains('sm-visible'), true, 'An actual completed reveal remains one-shot across explicit preference changes');
+const readWhileOff = fixture({ motionMode: 'off' });
+const offGeometryReads = readWhileOff.geometryReads;
+readWhileOff.scroll(2000); readWhileOff.scroll(0);
+equal(readWhileOff.geometryReads, offGeometryReads, 'Tracking read position while Off needs no per-scroll geometry walk');
+readWhileOff.setMotion('on');
+equal(readWhileOff.heading.classList.contains('sm-visible'), true, 'Content passed while motion was Off stays visible after returning to the top');
+const distantHeading = readWhileOff.sections.at(-1).querySelector('h2');
+equal(distantHeading.classList.contains('sm-visible'), false, 'Content beyond the furthest visited position can still reveal on entry');
+reenabled.connection.change(true); reenabled.flush();
+equal(reenabled.document.documentElement.classList.contains('sm-reduced'), true, 'Explicit On still respects Save Data');
+reenabled.connection.change(false); reenabled.flush();
+equal(reenabled.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true, 'A network preference change does not replay reveals even in explicit On mode');
+const limitedChoice = fixture({ reduced: true, motionMode: 'on', touchPoints: 1 });
+equal(limitedChoice.document.documentElement.classList.contains('sm-enhanced'), true, 'Explicit On keeps one-shot reveals available on a touch device');
+equal(limitedChoice.document.documentElement.classList.contains('sm-static-effects'), true, 'Explicit On does not bypass hardware safeguards');
+const noObserverChoice = fixture({ reduced: true, motionMode: 'auto', io: false });
+noObserverChoice.setMotion('on');
+equal(noObserverChoice.main.querySelectorAll('.sm-reveal').every(node => node.classList.contains('sm-visible')), true, 'Explicit On keeps the no-observer fallback visible');
+assert(css.includes('html:not([data-motion-preference="on"]) .sm-reveal')); checks++;
+assert(css.includes('html[data-motion-preference="off"] .sm-reveal')); checks++;
+const sharedCss = fs.readFileSync(path.join(root, 'css/styles.css'), 'utf8');
+assert(sharedCss.includes('html:not([data-motion-preference="on"]) *')); checks++;
+assert(sharedCss.includes('html[data-motion-preference="off"] *')); checks++;
 assert(css.includes('@media(prefers-reduced-motion:reduce)')); checks++;
 assert(css.includes('@media(max-width:1279px) { .sm-chapters { display: none; } }')); checks++;
 assert(!css.includes('filter: blur') && !css.includes('scroll-snap') && !css.includes('clip-path')); checks++;

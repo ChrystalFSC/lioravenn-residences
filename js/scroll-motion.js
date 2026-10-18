@@ -52,6 +52,7 @@
     let needsPageSize = true;
     let motionEnabled = false;
     let continuousEnabled = false;
+    let readThrough = (window.scrollY || 0) + window.innerHeight + 96;
     let viewportWidth = window.innerWidth;
     let viewportHeight = window.innerHeight;
     let pageHeight = 0;
@@ -161,7 +162,7 @@
         const section = element.closest('section') || main;
         const order = sectionCounts.get(section) || 0;
         sectionCounts.set(section, order + 1);
-        const record = { element, image, seen: false };
+        const record = { element, image, seen: false, read: false };
         records.push(record);
         lookup.set(element, record);
         element.classList.add(image ? 'sm-image-reveal' : 'sm-reveal');
@@ -177,13 +178,28 @@
         return active && active !== document.body && (element === active || element.contains(active) || active.contains(element));
     }
     function finishReveal(record) {
+        record.read = true;
         if (record.seen) return;
         record.seen = true;
         record.element.classList.add('sm-visible');
         observer?.unobserve?.(record.element);
     }
-    function configureMotion() {
-        motionEnabled = !reducedQuery?.matches && !connection?.saveData;
+    function restoreReveals() {
+        // A preference fallback makes everything usable without treating
+        // never-visited content as an already-read, one-shot reveal.
+        records.forEach(record => {
+            record.seen = true;
+            record.element.classList.add('sm-visible');
+        });
+    }
+    function configureMotion(event) {
+        const wasEnabled = motionEnabled;
+        const preference = window.LioravennMotion;
+        const preferredMotion = typeof preference?.isEnabled === 'function' ? preference.isEnabled() : !reducedQuery?.matches;
+        motionEnabled = preferredMotion && !connection?.saveData;
+        const y = window.scrollY || 0;
+        readThrough = Math.max(readThrough, y + window.innerHeight + 96);
+        const explicitlyEnabled = event?.type === 'lioravenn:motion-change' && !wasEnabled && motionEnabled && preference?.getMode?.() === 'on';
         continuousEnabled = allowsContinuousMotion({
             reduced: !motionEnabled, narrow: !!narrowQuery?.matches || window.innerWidth <= 1024,
             coarse: !!coarseQuery?.matches, touchPoints: window.navigator?.maxTouchPoints || 0,
@@ -202,6 +218,13 @@
                     });
                 }, { threshold: 0, rootMargin: '96px 0px' });
                 records.forEach(record => {
+                    if (explicitlyEnabled && record.seen && !record.read && !hasFocus(record.element)) {
+                        const bounds = record.element.getBoundingClientRect();
+                        if (bounds.top + y >= readThrough) {
+                            record.seen = false;
+                            record.element.classList.remove('sm-visible');
+                        }
+                    }
                     if (record.seen) return;
                     const bounds = record.element.getBoundingClientRect();
                     // Already-read and visible content is never hidden, including
@@ -212,9 +235,9 @@
                 root.classList.add('sm-enhanced');
             } catch {
                 observer?.disconnect();
-                records.forEach(finishReveal);
+                restoreReveals();
             }
-        } else records.forEach(finishReveal);
+        } else restoreReveals();
         if (!continuousEnabled) resetContinuousEffects();
         invalidate();
     }
@@ -245,6 +268,7 @@
         if (needsMeasure) measure();
         else if (needsPageSize) readPageSize();
         const y = window.scrollY || 0;
+        readThrough = Math.max(readThrough, y + viewportHeight + 96);
         const fraction = scrollProgress(y, pageHeight, viewportHeight).toFixed(5);
         if (fraction !== lastProgress) {
             progressFill.style.transform = `scaleX(${fraction})`;
@@ -367,6 +391,7 @@
     if (coarseQuery?.addEventListener) coarseQuery.addEventListener('change', configureMotion);
     else coarseQuery?.addListener?.(configureMotion);
     connection?.addEventListener?.('change', configureMotion);
+    window.addEventListener('lioravenn:motion-change', configureMotion);
     document.fonts?.ready.then(invalidate);
     configureMotion();
 })();

@@ -87,6 +87,13 @@ function fixture(options = {}) {
   });
   if (options.noMatchMedia) delete window.matchMedia;
   if (options.noRaf) delete window.requestAnimationFrame;
+  let motionMode = options.motionMode;
+  const installMotionApi = () => {
+    window.LioravennMotion = {
+      isEnabled: () => motionMode === 'on' || (motionMode !== 'off' && !reduced.matches)
+    };
+  };
+  if (motionMode !== undefined) installMotionApi();
   if (!options.noObserver) {
     window.IntersectionObserver = class {
       constructor(callback, observerOptions) { this.callback = callback; this.options = observerOptions; this.targets = []; observers.push(this); }
@@ -196,6 +203,15 @@ function fixture(options = {}) {
     hidden(value) { document.hidden = value; document.emit('visibilitychange'); },
     preferences(values) { Object.assign(connection, values); connection.emit('change'); },
     motion(value) { reduced.matches = value; reduced.emit('change'); },
+    setMotionMode(mode) {
+      if (!['auto', 'on', 'off'].includes(mode)) throw new Error(`Invalid motion fixture mode: ${mode}`);
+      motionMode = mode;
+      if (!window.LioravennMotion) installMotionApi();
+      // The site's explicit preference button emits synchronously from a click.
+      inGesture = true;
+      try { window.emit('lioravenn:motion-change', { detail: { mode, enabled: window.LioravennMotion.isEnabled() } }); }
+      finally { inGesture = false; }
+    },
     gesture(type = 'click') { inGesture = true; try { document.emit(type); } finally { inGesture = false; } },
     playing(index = 0) { return videos[index].surface.classList.contains('is-playing'); }
   };
@@ -539,6 +555,66 @@ async function test(name, work) {
       equal(video.currentSrc, url); equal(video.paused, false); equal(f.playing(), true);
       equal(video.attempts.length, 2, `${name} from an old pending play must not block or retry its healthy replacement`);
       equal(video.requestedSources.length, 1, 'Same-source recovery must isolate old callbacks without an encode download');
+    }
+  });
+
+  await test('explicit site motion modes override system motion while preserving a ready source', async () => {
+    const f = fixture({ reduced: true, motionMode: 'auto' }); await settle();
+    equal(f.videos[0].requestedSources.length, 0); equal(f.videos[0].attempts.length, 0);
+    f.setMotionMode('on');
+    equal(f.videos[0].attempts.length, 1, 'Explicit on must start synchronously even when the system reduces motion');
+    equal(f.videos[0].attempts[0].gesture, true);
+    await settle(); await f.clock.tick(2000);
+    equal(f.videos[0].paused, false); equal(f.playing(), true);
+    const url = f.videos[0].src;
+    f.setMotionMode('off'); await settle();
+    equal(f.videos[0].paused, true); equal(f.playing(), false); equal(f.clock.jobs.size, 0);
+    equal(f.videos[0].src, url); equal(f.videos[0].removedAttributes.length, 0);
+    await f.clock.tick(60000); equal(f.videos[0].attempts.length, 1);
+    f.setMotionMode('on'); await settle();
+    equal(f.videos[0].paused, false); equal(f.playing(), true);
+    equal(f.videos[0].requestedSources.length, 1, 'Off/on should reuse ready media rather than refetch it');
+    f.setMotionMode('auto'); await settle(); equal(f.videos[0].paused, true);
+    f.motion(false); await settle(); equal(f.videos[0].paused, false);
+    equal(f.videos[0].requestedSources.length, 1);
+    const explicitOff = fixture({ motionMode: 'off' }); await settle();
+    equal(explicitOff.videos[0].requestedSources.length, 0, 'Explicit off wins even when the system allows motion');
+    const explicitOn = fixture({ reduced: true, motionMode: 'on' }); await settle();
+    equal(explicitOn.videos[0].paused, false, 'A saved explicit-on choice must work on initial page load too');
+    equal(explicitOn.videos[0].requestedSources.length, 1);
+  });
+
+  await test('explicit motion on never overrides data-saving or severely restricted-network safeguards', async () => {
+    for (const restriction of [{ saveData: true }, { effectiveType: '2g' }, { effectiveType: 'slow-2g' }]) {
+      const f = fixture({ reduced: true, motionMode: 'auto', connection: restriction }); await settle();
+      f.setMotionMode('on'); await settle();
+      equal(f.videos[0].requestedSources.length, 0); equal(f.videos[0].attempts.length, 0);
+      f.preferences({ saveData: false, effectiveType: '4g' }); await settle();
+      equal(f.videos[0].paused, false); equal(f.playing(), true);
+      equal(f.videos[0].requestedSources.length, 1);
+      f.preferences(restriction); await settle();
+      f.setMotionMode('off'); f.setMotionMode('on'); await settle(); await f.clock.tick(20000);
+      equal(f.videos[0].src, ''); equal(f.videos[0].paused, true); equal(f.clock.jobs.size, 0);
+      equal(f.videos[0].requestedSources.length, 1, 'A preference-button gesture cannot restart a released restricted stream');
+    }
+  });
+
+  await test('a site motion-on gesture recovers blocked or abandoned playback on the same source', async () => {
+    for (const initial of ['not-allowed', 'pending']) {
+      const f = fixture({ reduced: true, motionMode: 'auto', plans: [[initial, 'resolve']] });
+      f.setMotionMode('on'); await settle();
+      const first = f.videos[0].attempts[0];
+      ok(first, 'The first explicit motion-on attempts playback');
+      const url = f.videos[0].src;
+      f.setMotionMode('off'); f.setMotionMode('on');
+      equal(f.videos[0].attempts.length, 2, 'The motion-change event must retry before user activation ends');
+      equal(f.videos[0].attempts[1].gesture, true);
+      await settle(); equal(f.videos[0].paused, false); equal(f.playing(), true);
+      equal(f.videos[0].src, url); equal(f.videos[0].requestedSources.length, 1);
+      if (initial === 'pending') {
+        first.reject('NotAllowedError'); await settle();
+        equal(f.videos[0].paused, false); equal(f.playing(), true);
+      }
     }
   });
 

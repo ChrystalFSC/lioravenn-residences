@@ -95,7 +95,7 @@ Home selections travel through page URLs. Saved favourites and valid calculator 
 The original portal-shaped **L** monogram, Cormorant Garamond headings, and Manrope body text create a consistent identity across the website and exported brochure.
 
 - **Responsive layouts:** the same tools adapt to desktop and phone screens.
-- **Considered motion:** native scrolling, restrained transitions, and support for reduced-motion and data-saving preferences.
+- **Considered motion:** native scrolling, restrained transitions, and an Auto / On / Off control alongside reduced-motion and data-saving support.
 - **Keyboard access:** skip links, focus handling, accessible dialogs, and keyboard-operated room tabs.
 - **Sharper imagery:** high-quality WebP assets with preserved originals and [documented AI-restoration provenance](img/enhanced/README.md).
 
@@ -135,6 +135,7 @@ node tests/brochure-model.test.cjs
 node tests/brochure-pdf.test.cjs
 node tests/scroll-motion.test.cjs
 node tests/ambient-videos.test.cjs
+node tests/motion-preferences.test.cjs
 ```
 
 | Check | Focus |
@@ -146,6 +147,7 @@ node tests/ambient-videos.test.cjs
 | PDF generation | Long-note pagination, multilingual notes, wrapping, and page bounds. |
 | Scroll motion | One-time reveals, bidirectional chapter/progress updates, device limits, reduced-motion changes, focus, and layout fallbacks. |
 | Ambient video | Adaptive sources, visibility/buffering, blocked-autoplay recovery, source fallback, and live preferences. |
+| Motion preferences | Explicit choices, device settings, local persistence, shared events, and unavailable-storage fallback. |
 
 Browser checks also cover desktop/phone layouts, full-resolution gallery images, silent video playback, and actual PDF downloads. Exported PDFs were rendered for visual inspection.
 

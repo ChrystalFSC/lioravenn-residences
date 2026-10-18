@@ -32,7 +32,8 @@
   const hasObserver = typeof window.IntersectionObserver === 'function';
   const entries = [];
   const lookup = new WeakMap();
-  const permitted = () => allowsVideo({ reduced: !!reducedMotion?.matches, saveData: !!connection?.saveData, effectiveType: connection?.effectiveType });
+  const permitted = () => allowsVideo({ reduced: window.LioravennMotion ? !window.LioravennMotion.isEnabled() : !!reducedMotion?.matches,
+    saveData: !!connection?.saveData, effectiveType: connection?.effectiveType });
   const shouldPlay = entry => permitted() && !document.hidden && entry.visible && !entry.failed;
   const quality = () => selectVideoQuality({ width: window.innerWidth, coarse: !!coarsePointer?.matches,
     memory: window.navigator?.deviceMemory, cores: window.navigator?.hardwareConcurrency,
@@ -288,5 +289,11 @@
   document.addEventListener('touchend', retryBlocked, { passive: true });
   document.addEventListener('click', retryBlocked, { passive: true });
   document.addEventListener('keydown', retryBlocked);
+  window.addEventListener('lioravenn:motion-change', () => {
+    preferenceChange();
+    // Runs in the select's change handler, preserving user activation when a
+    // browser had previously refused the muted autoplay attempt.
+    retryBlocked();
+  });
   measureVisibility();
 })();
