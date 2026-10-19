@@ -58,6 +58,8 @@ Editorial transitions follow each element's viewport position in either scroll d
 
 Editorial headings with explicit line breaks use semantic line spans, with a small scroll-position stagger between lines. The full heading settles together in the reading area; reversing direction retraces the same states. Eligible eyebrow labels have a fine brass rule that draws in with their reveal. The homepage's two clipped still-image frames also zoom gently from 1.065 to 1 as they cross the viewport, independently of the more restrictive large-image parallax policy. These effects share the existing scheduled frame and cached bounds, preserve emphasis and natural text wrapping, and reset for focus, data saving and print.
 
+Three homepage sections instead use structural scenes in `scroll-scenes.js`: ivory shutters slide apart over the welcome photograph; a native sticky showcase lets three residence cards peel away in sequence; and the lifestyle video frame grows from a rounded, tilted inset to a flat full-width surface. These sections stay opaque and are excluded from generic editorial fades. Progress uses stationary document anchors, cached outside ordinary scroll frames. Keyboard focus brings each residence card into view and clears internal scroll offsets. Viewports shorter than 640 pixels show all homes in ordinary flow, and narrow screens reserve space for the fixed viewing link. Motion/data restrictions and print also restore ordinary flow, with no empty sticky runway. Video nodes, sources and playback handling remain unchanged.
+
 Motion is On automatically with no visible motion menu, mode selector or playback-status panel. Old stored modes and motion query parameters are ignored so an earlier Off choice cannot silently suppress the experience. The small background initializer exposes the shared read-only motion state to both controllers. Explicit browser data saving and severely constrained video-connection safeguards still apply.
 
 Higher-resolution concept photographs live in `img/enhanced/`. Six small source photos were faithfully restored with the built-in image-generation tool; their reconstructed texture is illustrative, not verified property detail. Preserved masters, exact output dimensions and restoration prompts are documented in that folder. The existing 1600×900 bedroom photograph also has a higher-quality WebP copy. Enhanced images are used consistently by pages, gallery rooms/lightbox, home cards and brochure/PDF export. Floor plans retain their original geometry and raster source detail; sharper drawings would require higher-resolution originals.
@@ -75,6 +77,7 @@ node tests/site-plan.test.cjs
 node tests/brochure-model.test.cjs
 node tests/brochure-pdf.test.cjs
 node tests/scroll-motion.test.cjs
+node tests/scroll-scenes.test.cjs
 node tests/ambient-videos.test.cjs
 node tests/motion-preferences.test.cjs
 ```
