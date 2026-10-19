@@ -95,7 +95,7 @@ Home selections travel through page URLs. Saved favourites and valid calculator 
 The original portal-shaped **L** monogram, Cormorant Garamond headings, and Manrope body text create a consistent identity across the website and exported brochure.
 
 - **Responsive layouts:** the same tools adapt to desktop and phone screens.
-- **Considered motion:** native scrolling, restrained transitions, and an Auto / On / Off control alongside reduced-motion and data-saving support.
+- **Considered motion:** motion is enabled automatically, with section transitions that reverse as you scroll back up, plus data-saving support.
 - **Keyboard access:** skip links, focus handling, accessible dialogs, and keyboard-operated room tabs.
 - **Sharper imagery:** high-quality WebP assets with preserved originals and [documented AI-restoration provenance](img/enhanced/README.md).
 
@@ -145,9 +145,9 @@ node tests/motion-preferences.test.cjs
 | Concept site plan | Supported selections, shared settings, and DOM behavior. |
 | Brochure models | Financing validation, selection continuity, and safe note handling. |
 | PDF generation | Long-note pagination, multilingual notes, wrapping, and page bounds. |
-| Scroll motion | One-time reveals, bidirectional chapter/progress updates, device limits, reduced-motion changes, focus, and layout fallbacks. |
+| Scroll motion | Reversible viewport-edge transitions, chapter/progress updates, cached geometry, device limits, focus, and layout fallbacks. |
 | Ambient video | Adaptive sources, visibility/buffering, blocked-autoplay recovery, source fallback, and live preferences. |
-| Motion preferences | Explicit choices, device settings, local persistence, shared events, and unavailable-storage fallback. |
+| Motion defaults | Automatic motion without settings UI, legacy-preference isolation, and live data-saving updates. |
 
 Browser checks also cover desktop/phone layouts, full-resolution gallery images, silent video playback, and actual PDF downloads. Exported PDFs were rendered for visual inspection.
 

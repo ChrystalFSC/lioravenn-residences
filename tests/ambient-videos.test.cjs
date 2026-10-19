@@ -230,18 +230,28 @@ async function test(name, work) {
 }
 
 (async () => {
-  await test('desktop/mobile and weak-network quality choices', async () => {
+  await test('desktop defaults to 1080p while narrow screens and slower links choose 720p', async () => {
     equal(api.selectVideoQuality({ width: 1440, memory: 8, cores: 8, downlink: 10 }), 'balanced');
-    for (const environment of [{ width: 390 }, { coarse: true }, { memory: 4 }, { cores: 4 }, { effectiveType: '3g' }, { downlink: 1.5 }]) equal(api.selectVideoQuality(environment), 'mobile');
+    for (const environment of [{ width: 390 }, { width: 800 }, { effectiveType: '3g' }, { downlink: 1.5 }, { downlink: 4.9 }]) equal(api.selectVideoQuality(environment), 'mobile');
+    equal(api.selectVideoQuality({ width: 801, downlink: 5 }), 'balanced', 'A desktop-sized viewport on an adequate link keeps 1080p');
     equal(api.selectVideoQuality(), 'balanced', 'Missing device hints must not punish a normal desktop');
-    for (const options of [{ width: 390 }, { connection: { downlink: 1.5 } }, { cores: 4 }]) {
+    equal(api.selectVideoQuality({ width: 1440, downlink: 0 }), 'balanced', 'An unavailable downlink estimate is not evidence of a slow connection');
+    for (const options of [{ width: 390 }, { width: 800 }, { connection: { downlink: 1.5 } }, { connection: { downlink: 4.9 } }, { connection: { effectiveType: '3g' } }]) {
       const f = fixture(options); await settle();
-      ok(f.videos[0].loads[0].includes('-mobile.mp4'), 'Restricted devices should request the smaller MP4 first');
+      ok(f.videos[0].loads[0].includes('-balanced.mp4'), 'Narrow screens and slower links request the existing 720p MP4, not 540p');
     }
     const desktop = fixture(); await settle();
-    ok(desktop.videos[0].loads[0].includes('-balanced.mp4'));
+    ok(desktop.videos[0].loads[0].includes('-1080.mp4'), 'An ordinary desktop requests the efficient 1080p source first');
     desktop.window.innerWidth = 390; desktop.window.emit('resize'); await settle();
     equal(desktop.videos[0].loads.length, 1, 'A resize must not restart a healthy desktop video');
+  });
+
+  await test('four-core, lower-memory and coarse-pointer desktops retain 1080p', async () => {
+    for (const hints of [{ cores: 4 }, { memory: 4 }, { coarse: true }, { cores: 4, memory: 4, coarse: true }]) {
+      equal(api.selectVideoQuality({ width: 1440, downlink: 10, ...hints }), 'balanced', 'Hardware and pointer hints alone do not prove poor playback');
+      const f = fixture({ width: 1440, ...hints }); await settle();
+      ok(f.videos[0].requestedSources[0].includes('-1080.mp4'), 'Touch laptops and four-core PCs should not be forced to 540p/720p');
+    }
   });
 
   await test('source deduplication and codec fallback', async () => {
@@ -274,7 +284,7 @@ async function test(name, work) {
     const f = fixture({ positions: [1000, 2400] }); await settle();
     f.videos[0].emit('error'); await settle();
     equal(f.videos[0].loads.length, 2);
-    ok(f.videos[0].loads[1].includes('-mobile.mp4'));
+    ok(f.videos[0].loads[1].includes('-balanced.mp4'));
     equal(f.videos[0].attempts.length, 0);
     f.visible(0, true); await settle();
     equal(f.videos[0].paused, false); equal(f.playing(), true);
@@ -354,7 +364,7 @@ async function test(name, work) {
     await f.clock.tick(1200); equal(f.playing(), false);
     await f.clock.tick(6799); equal(f.videos[0].loads.length, 1);
     await f.clock.tick(1); equal(f.videos[0].loads.length, 2);
-    ok(f.videos[0].loads[1].includes('-mobile.mp4'));
+    ok(f.videos[0].loads[1].includes('-balanced.mp4'));
     await f.clock.tick(8000); equal(f.videos[0].loads.length, 3);
     ok(f.videos[0].loads[2].includes('.webm'));
     await f.clock.tick(8000); equal(f.videos[0].paused, true); equal(f.playing(), false);
@@ -465,7 +475,7 @@ async function test(name, work) {
     f.videos[0].emit('canplay'); f.document.emit('visibilitychange'); await settle();
     equal(f.videos[0].loads.length, 3, 'An exhausted video stays on its poster until a recovery signal');
     f.window.emit('online'); await settle();
-    equal(f.videos[0].loads.length, 4); ok(f.videos[0].loads[3].includes('-balanced.mp4'));
+    equal(f.videos[0].loads.length, 4); ok(f.videos[0].loads[3].includes('-1080.mp4'));
     equal(f.videos[0].paused, false); equal(f.playing(), true);
     equal(f.videos[1].loads.length, 0, 'Recovery must not eagerly download a distant second video');
   });

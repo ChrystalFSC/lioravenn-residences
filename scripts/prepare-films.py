@@ -4,6 +4,7 @@ Run with Python 3 and an existing FFmpeg executable:
     python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe
     python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe --hd
     python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe --adaptive
+    python scripts/prepare-films.py --ffmpeg C:/path/to/ffmpeg.exe --premium
 
 The default prepares the smaller MP4/WebM versions. --hd preserves those files
 and prepares 1920x1080 H264 MP4 versions from the original source. Both modes
@@ -12,6 +13,8 @@ refresh the shared 1920x1080 posters. Clean source detail is 1712x964 after crop
 --adaptive prepares separate 540p mobile and 720p balanced MP4s with capped
 bitrates, H264 Main level 3.1, two B-frames and a two-second keyframe interval.
 This mode preserves all existing source/HD/small files and posters unchanged.
+--premium prepares efficient 1080p desktop MP4s capped at 3.5 Mbps, using Main
+level 4.0. Existing 720p balanced files serve as smaller-screen/fallback sources.
 
 No dependencies are installed. The source remains unchanged. Each source shot
 has its baked letterbox bars cropped and its original black transition trimmed.
@@ -58,6 +61,10 @@ ADAPTIVE_VARIANTS = [
     ("lioravenn-hero-balanced", HERO_SHOTS, (1280, 720), "1300k", "1300k", 3_000_000),
     ("lioravenn-lifestyle-balanced", FILM_SHOTS, (1280, 720), "1500k", "3000k", 9_000_000),
 ]
+PREMIUM_VARIANTS = [
+    ("lioravenn-hero-1080", HERO_SHOTS, (1920, 1080), "3500k", "7000k", 8_000_000),
+    ("lioravenn-lifestyle-1080", FILM_SHOTS, (1920, 1080), "3500k", "7000k", 20_000_000),
+]
 
 
 def run(command: list[str]) -> None:
@@ -82,7 +89,7 @@ def graph(shots: list[tuple[float, float]], size: tuple[int, int]) -> str:
 def encode(ffmpeg: str, name: str, shots: list[tuple[float, float]], size: tuple[int, int], crf: int,
            bitrate: str, extensions: tuple[str, ...] = ("mp4", "webm"), preset: str = "medium",
            maxrate: str | None = None, bufsize: str | None = None,
-           adaptive: bool = False) -> None:
+           adaptive: bool = False, level: str = "3.1") -> None:
     for extension in extensions:
         target = ROOT / "videos" / f"{name}.{extension}"
         print(f"Encoding {target.name} ({sum(end-start for start,end in shots):.2f}s, {size[0]}x{size[1]})", flush=True)
@@ -96,7 +103,7 @@ def encode(ffmpeg: str, name: str, shots: list[tuple[float, float]], size: tuple
             elif name == "lioravenn-lifestyle":
                 command += ["-maxrate", "2400k", "-bufsize", "4800k"]
             if adaptive:
-                command += ["-profile:v", "main", "-level:v", "3.1", "-bf", "2", "-refs", "2",
+                command += ["-profile:v", "main", "-level:v", level, "-bf", "2", "-refs", "2",
                             "-keyint_min", "50", "-sc_threshold", "0"]
         else:
             command += ["-c:v", "libvpx", "-b:v", bitrate, "-crf", "31", "-deadline", "good", "-cpu-used", "2",
@@ -143,7 +150,7 @@ def mp4_configuration(target: Path) -> dict:
             "faststart": b"moov" in atoms and b"mdat" in atoms and atoms.index(b"moov") < atoms.index(b"mdat")}
 
 
-def probe_adaptive(ffmpeg: str, target: Path, expected_size: tuple[int, int], maximum_bytes: int) -> dict:
+def probe_adaptive(ffmpeg: str, target: Path, expected_size: tuple[int, int], maximum_bytes: int, level_idc: int = 31) -> dict:
     """Use an installed ffprobe when present, otherwise FFmpeg's stream probe."""
     ffprobe = shutil.which("ffprobe")
     if ffprobe:
@@ -174,24 +181,26 @@ def probe_adaptive(ffmpeg: str, target: Path, expected_size: tuple[int, int], ma
     facts.update(file=f"videos/{target.name}", bytes=target.stat().st_size,
                  averageKbps=round(target.stat().st_size * 8 / duration / 1000, 1))
     assert facts["codec"] == "h264" and facts["profile"] == "Main", facts
-    assert facts["profileIdc"] == 77 and facts["levelIdc"] == 31, facts
+    assert facts["profileIdc"] == 77 and facts["levelIdc"] == level_idc, facts
     assert facts["pixelFormat"] == "yuv420p" and facts["sar"] == "1:1", facts
     assert (facts["width"], facts["height"]) == expected_size and facts["fps"] == FPS, facts
     assert facts["faststart"] and not facts["audio"] and facts["bytes"] <= maximum_bytes, facts
     return facts
 
 
-def adaptive_films(ffmpeg: str) -> list[str]:
-    names = [f"{variant[0]}.mp4" for variant in ADAPTIVE_VARIANTS]
+def adaptive_films(ffmpeg: str, premium: bool = False) -> list[str]:
+    variants = PREMIUM_VARIANTS if premium else ADAPTIVE_VARIANTS
+    names = [f"{variant[0]}.mp4" for variant in variants]
     protected_paths = [path for path in (ROOT / "videos").iterdir()
                        if path.is_file() and path.suffix in (".mp4", ".webm") and path.name not in names]
     protected_paths += list((ROOT / "img/optimized").glob("*poster.webp"))
     preserved = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in protected_paths}
-    for name, shots, size, maxrate, buffer, maximum_bytes in ADAPTIVE_VARIANTS:
-        encode(ffmpeg, name, shots, size, 24, "", ("mp4",), "fast", maxrate, buffer, adaptive=True)
+    for name, shots, size, maxrate, buffer, maximum_bytes in variants:
+        encode(ffmpeg, name, shots, size, 22 if premium else 24, "", ("mp4",), "medium" if premium else "fast",
+               maxrate, buffer, adaptive=True, level="4.0" if premium else "3.1")
         target = ROOT / "videos" / f"{name}.mp4"
         run([ffmpeg, "-hide_banner", "-loglevel", "error", "-threads", "2", "-i", str(target), "-f", "null", "-"])
-        print(json.dumps(probe_adaptive(ffmpeg, target, size, maximum_bytes)), flush=True)
+        print(json.dumps(probe_adaptive(ffmpeg, target, size, maximum_bytes, 40 if premium else 31)), flush=True)
     assert all(hashlib.sha256(path.read_bytes()).hexdigest() == digest for path, digest in preserved.items()), "Protected source/media/poster changed"
     print(f"Verified {len(preserved)} existing media/poster files unchanged by SHA-256.", flush=True)
     return names
@@ -203,16 +212,17 @@ def main() -> None:
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--hd", action="store_true", help="Prepare only the 1080p MP4s and HD posters, preserving smaller video versions")
     modes.add_argument("--adaptive", action="store_true", help="Prepare new 540p mobile/720p balanced MP4s only; preserve existing media and posters")
+    modes.add_argument("--premium", action="store_true", help="Prepare efficient 1080p desktop MP4s only, preserving existing media and posters")
     args = parser.parse_args()
     if not args.ffmpeg or not Path(args.ffmpeg).is_file():
         parser.error("Supply --ffmpeg with an existing executable. This script does not download or install tools.")
     if not SOURCE.is_file():
         parser.error(f"Missing original source: {SOURCE}")
-    if args.adaptive:
-        names = adaptive_films(args.ffmpeg)
+    if args.adaptive or args.premium:
+        names = adaptive_films(args.ffmpeg, premium=args.premium)
         print(json.dumps({"source": "videos/bg1.mp4", "heroShots": HERO_SHOTS, "filmShots": FILM_SHOTS,
-                          "crop": CROP, "fps": FPS, "audio": False, "mode": "adaptive", "outputs": names,
-                          "validation": "All adaptive outputs fully decoded and stream configuration checked."}), flush=True)
+                          "crop": CROP, "fps": FPS, "audio": False, "mode": "premium" if args.premium else "adaptive", "outputs": names,
+                          "validation": "All prepared outputs fully decoded and stream configuration checked."}), flush=True)
         return
     (ROOT / "img/optimized").mkdir(parents=True, exist_ok=True)
     poster_size = (1920, 1080)

@@ -2,12 +2,9 @@
    No-JS, print, focused content and reduced-motion states remain fully visible. */
 .sm-scroll-progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 250; pointer-events: none; background: transparent; }
 .sm-scroll-progress-fill { display: block; width: 100%; height: 100%; background: var(--brass,#aa8955); transform: scaleX(0); transform-origin: left center; }
-.sm-enhanced .sm-reveal { opacity: 1; transition: opacity .4s ease; transition-delay: var(--sm-delay,0ms); }
-.sm-enhanced .sm-reveal:not(.sm-visible) { opacity: 0; }
-.sm-enhanced .sm-shift-reveal { transform: none; transition: opacity .4s ease,transform .5s cubic-bezier(.2,.65,.25,1); transition-delay: var(--sm-delay,0ms); }
-.sm-enhanced .sm-shift-reveal:not(.sm-visible) { transform: translateY(16px); }
-.sm-enhanced .sm-image-reveal { opacity: 1; transition: opacity .5s ease; }
-.sm-enhanced .sm-image-reveal:not(.sm-visible) { opacity: .3; }
+.sm-enhanced .sm-reveal { opacity: var(--sm-opacity,1); transition: none; }
+.sm-enhanced .sm-image-reveal { opacity: var(--sm-opacity,1); transition-property: transform; }
+.sm-enhanced .sm-shift-reveal { transform: translateY(var(--sm-y,0px)); }
 .sm-enhanced .sm-reveal:focus-within,.sm-enhanced .sm-image-reveal:focus-within,.sm-enhanced .sm-focus-held { opacity: 1!important; transition: none!important; }
 .sm-enhanced .sm-shift-reveal:focus-within,.sm-enhanced .sm-shift-reveal.sm-focus-held { transform: none!important; }
 .sm-hero-copy { transform: translate3d(0,var(--sm-hero-y,0px),0); opacity: var(--sm-hero-opacity,1); }
@@ -35,7 +32,6 @@
 .sm-static-effects .sm-visual-layer { transform: none; inset: 0; }
 @media(max-width:1279px) { .sm-chapters { display: none; } }
 @media(max-width:1050px) { .welcome-visual>.sm-visual-frame { height: 400px; } }
-@media(max-width:1024px),(pointer:coarse) { .sm-enhanced .sm-reveal,.sm-enhanced .sm-shift-reveal,.sm-enhanced .sm-image-reveal { transition-duration: .3s; transition-delay: 0ms; }.sm-enhanced .sm-shift-reveal:not(.sm-visible) { transform: translateY(6px); } }
 @media(max-width:800px) { .welcome-visual>.sm-visual-frame { height: 370px; }.explore-image>.sm-visual-frame { height: 500px; } }
 @media(max-width:550px) { .welcome-visual>.sm-visual-frame { height: 300px; }.explore-image>.sm-visual-frame { height: 320px; } }
 html[data-motion-preference="off"] .sm-scroll-progress { display: none; }

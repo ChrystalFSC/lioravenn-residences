@@ -25,8 +25,26 @@
             !(Number.isFinite(cores) && cores > 0 && cores <= 4) &&
             !(Number.isFinite(memory) && memory > 0 && memory <= 4);
     }
+    function edgeMotion(scrollY, viewportHeight, top, height, headerHeight = 0, minimumOpacity = .38, amplitude = 24) {
+        if (![scrollY, viewportHeight, top, height].every(Number.isFinite) || viewportHeight <= 0 || height <= 0) return { opacity: 1, y: 0 };
+        const inset = clamp(headerHeight, 0, viewportHeight * .35);
+        const band = clamp((viewportHeight - inset) * .22, 96, 220);
+        const relativeTop = top - scrollY;
+        const entering = clamp((viewportHeight - relativeTop) / band);
+        const leaving = clamp((relativeTop + height - inset) / band);
+        const ease = value => value * value * (3 - 2 * value);
+        const entry = ease(entering);
+        const exit = ease(leaving);
+        const floor = clamp(minimumOpacity);
+        // Long copy stays opaque while either end reaches the reading area.
+        // The same document position always produces the same state in either direction.
+        return {
+            opacity: Math.round((floor + (1 - floor) * Math.min(entry, exit)) * 1000) / 1000,
+            y: Math.round((exit - entry) * clamp(amplitude, 0, 28) * 100) / 100 || 0
+        };
+    }
     const overlapsViewport = (top, height, scrollY, viewportHeight) => height > 0 && top + height > scrollY && top < scrollY + viewportHeight;
-    if (typeof module === 'object' && module.exports) module.exports = { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport };
+    if (typeof module === 'object' && module.exports) module.exports = { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport, edgeMotion };
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
     const main = document.querySelector('main');
     if (!main || typeof window.requestAnimationFrame !== 'function') return;
@@ -43,16 +61,13 @@
     // animation or a page-specific hover effect.
     const heroEffect = heroCopy && (!window.getComputedStyle || window.getComputedStyle(heroCopy).transform === 'none') ? heroCopy : null;
     const records = [];
-    const lookup = new WeakMap();
     const visualLayers = [];
     const chapters = [];
-    let observer = null;
     let scheduled = 0;
     let needsMeasure = true;
     let needsPageSize = true;
     let motionEnabled = false;
     let continuousEnabled = false;
-    let readThrough = (window.scrollY || 0) + window.innerHeight + 96;
     let viewportWidth = window.innerWidth;
     let viewportHeight = window.innerHeight;
     let pageHeight = 0;
@@ -152,22 +167,17 @@
     }
 
     const excluded = 'form,fieldset,dialog,[role="dialog"],[role="tabpanel"],[aria-live],[role="status"],[role="alert"],[hidden],[aria-hidden="true"],button,details,.brochure-workspace,#brochure-preview,.brochure-preview-column,#site-plan-explorer,.finance-section,.comparison-section,.viewing-section,.finder-filters,.finder-empty,.unit-card,.collection-toolbar,.room-story,.room-tabs,.hero-copy,.small-print,.collection-note,.finder-disclaimer,.site-plan-disclaimer,.life-disclaimer,.finder-sr-only,.sr-only,[data-motion="off"]';
-    const sectionCounts = new WeakMap();
     function addRecord(element, image = false) {
-        if (lookup.has(element) || element.closest(excluded)) return;
+        if (records.some(record => record.element === element) || element.closest(excluded)) return;
         if (!image && (element.closest('a') || element.querySelector('a,button,input,select,textarea,[contenteditable="true"]'))) return;
         if (records.some(record => !record.image && record.element.contains(element))) return;
         const bounds = element.getBoundingClientRect();
         if (!bounds.width || !bounds.height) return;
-        const section = element.closest('section') || main;
-        const order = sectionCounts.get(section) || 0;
-        sectionCounts.set(section, order + 1);
-        const record = { element, image, seen: false, read: false };
+        const shift = !image && (!window.getComputedStyle || window.getComputedStyle(element).transform === 'none');
+        const record = { element, image, shift, top: 0, height: 0, focused: false, lastOpacity: null, lastY: null };
         records.push(record);
-        lookup.set(element, record);
         element.classList.add(image ? 'sm-image-reveal' : 'sm-reveal');
-        if (!image && (!window.getComputedStyle || window.getComputedStyle(element).transform === 'none')) element.classList.add('sm-shift-reveal');
-        element.style.setProperty('--sm-delay', `${Math.min(order % 3 * 45, 90)}ms`);
+        if (shift) element.classList.add('sm-shift-reveal');
     }
     main.querySelectorAll('.facts-inner > div,.life-values > article').forEach(element => addRecord(element));
     main.querySelectorAll('h1,h2,h3,p').forEach(element => addRecord(element));
@@ -177,29 +187,20 @@
         const active = document.activeElement;
         return active && active !== document.body && (element === active || element.contains(active) || active.contains(element));
     }
-    function finishReveal(record) {
-        record.read = true;
-        if (record.seen) return;
-        record.seen = true;
-        record.element.classList.add('sm-visible');
-        observer?.unobserve?.(record.element);
+    function writeRecord(record, opacity, y) {
+        if (opacity !== record.lastOpacity) {
+            record.element.style.setProperty('--sm-opacity', String(opacity));
+            record.lastOpacity = opacity;
+        }
+        if (record.shift && y !== record.lastY) {
+            record.element.style.setProperty('--sm-y', `${y}px`);
+            record.lastY = y;
+        }
     }
-    function restoreReveals() {
-        // A preference fallback makes everything usable without treating
-        // never-visited content as an already-read, one-shot reveal.
-        records.forEach(record => {
-            record.seen = true;
-            record.element.classList.add('sm-visible');
-        });
-    }
-    function configureMotion(event) {
-        const wasEnabled = motionEnabled;
+    function configureMotion() {
         const preference = window.LioravennMotion;
         const preferredMotion = typeof preference?.isEnabled === 'function' ? preference.isEnabled() : !reducedQuery?.matches;
         motionEnabled = preferredMotion && !connection?.saveData;
-        const y = window.scrollY || 0;
-        readThrough = Math.max(readThrough, y + window.innerHeight + 96);
-        const explicitlyEnabled = event?.type === 'lioravenn:motion-change' && !wasEnabled && motionEnabled && preference?.getMode?.() === 'on';
         continuousEnabled = allowsContinuousMotion({
             reduced: !motionEnabled, narrow: !!narrowQuery?.matches || window.innerWidth <= 1024,
             coarse: !!coarseQuery?.matches, touchPoints: window.navigator?.maxTouchPoints || 0,
@@ -207,37 +208,8 @@
         });
         root.classList.toggle('sm-reduced', !motionEnabled);
         root.classList.toggle('sm-static-effects', !continuousEnabled);
-        root.classList.remove('sm-enhanced');
-        observer?.disconnect();
-        if (motionEnabled && typeof window.IntersectionObserver === 'function') {
-            try {
-                observer = new window.IntersectionObserver(entries => {
-                    entries.forEach(entry => {
-                        const record = lookup.get(entry.target);
-                        if (record && entry.isIntersecting) finishReveal(record);
-                    });
-                }, { threshold: 0, rootMargin: '96px 0px' });
-                records.forEach(record => {
-                    if (explicitlyEnabled && record.seen && !record.read && !hasFocus(record.element)) {
-                        const bounds = record.element.getBoundingClientRect();
-                        if (bounds.top + y >= readThrough) {
-                            record.seen = false;
-                            record.element.classList.remove('sm-visible');
-                        }
-                    }
-                    if (record.seen) return;
-                    const bounds = record.element.getBoundingClientRect();
-                    // Already-read and visible content is never hidden, including
-                    // browser scroll restoration and backwards anchor navigation.
-                    if (bounds.top < window.innerHeight + 96 || hasFocus(record.element)) finishReveal(record);
-                    else observer.observe(record.element);
-                });
-                root.classList.add('sm-enhanced');
-            } catch {
-                observer?.disconnect();
-                restoreReveals();
-            }
-        } else restoreReveals();
+        root.classList.toggle('sm-enhanced', motionEnabled);
+        if (!motionEnabled) records.forEach(record => writeRecord(record, 1, 0));
         if (!continuousEnabled) resetContinuousEffects();
         invalidate();
     }
@@ -250,9 +222,17 @@
         viewportHeight = window.innerHeight || root.clientHeight;
         const y = window.scrollY || 0;
         readPageSize();
+        headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height || 0;
         chapters.forEach(chapter => { chapter.top = chapter.element.getBoundingClientRect().top + y; });
+        records.forEach(record => {
+            const bounds = record.element.getBoundingClientRect();
+            // getBoundingClientRect includes our current translation. Remove
+            // that known offset so layout refreshes never accumulate motion.
+            const appliedY = motionEnabled && record.shift && !record.focused ? record.lastY || 0 : 0;
+            record.top = bounds.top + y - appliedY;
+            record.height = bounds.width > 0 ? bounds.height : 0;
+        });
         if (continuousEnabled && heroEffect) {
-            headerHeight = document.querySelector('.site-header')?.getBoundingClientRect().height || 0;
             const bounds = hero.getBoundingClientRect();
             heroBounds = { top: bounds.top + y, height: bounds.height };
         }
@@ -268,7 +248,6 @@
         if (needsMeasure) measure();
         else if (needsPageSize) readPageSize();
         const y = window.scrollY || 0;
-        readThrough = Math.max(readThrough, y + viewportHeight + 96);
         const fraction = scrollProgress(y, pageHeight, viewportHeight).toFixed(5);
         if (fraction !== lastProgress) {
             progressFill.style.transform = `scaleX(${fraction})`;
@@ -288,6 +267,14 @@
                 chapterButton.setAttribute('aria-label', `Page chapters. Current: ${String(index + 1).padStart(2, '0')}, ${chapter.label}. Show or hide chapters.`);
             }
         }
+        if (motionEnabled) records.forEach(record => {
+            if (record.focused) { writeRecord(record, 1, 0); return; }
+            // A generous near-viewport margin prepares entries before they
+            // appear, but distant elements receive no per-frame style writes.
+            if (!overlapsViewport(record.top, record.height, y - 160, viewportHeight + 320)) return;
+            const state = edgeMotion(y, viewportHeight, record.top, record.height, headerHeight, record.image ? .62 : .38);
+            writeRecord(record, state.opacity, state.y);
+        });
         if (!continuousEnabled) return;
         if (heroEffect && heroBounds && overlapsViewport(heroBounds.top, heroBounds.height, y, viewportHeight) && !hasFocus(heroEffect)) {
             const state = heroMotion(y, heroBounds.top, heroBounds.height, headerHeight);
@@ -346,18 +333,18 @@
     window.addEventListener('load', invalidate, { once: true });
     window.addEventListener('pageshow', invalidate);
     window.addEventListener('lioravenn:layout-change', invalidate);
+    main.addEventListener('load', invalidate, true);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) invalidate(); });
-    document.addEventListener('focusin', () => {
+    function updateFocus() {
         records.forEach(record => {
-            if (hasFocus(record.element)) {
-                finishReveal(record);
-                record.element.classList.add('sm-focus-held');
-            }
+            record.focused = !!hasFocus(record.element);
+            record.element.classList.toggle('sm-focus-held', record.focused);
+            if (record.focused) writeRecord(record, 1, 0);
         });
-    });
-    document.addEventListener('focusout', () => window.requestAnimationFrame(() => {
-        records.forEach(record => { if (!hasFocus(record.element)) record.element.classList.remove('sm-focus-held'); });
-    }));
+        schedule();
+    }
+    document.addEventListener('focusin', updateFocus);
+    document.addEventListener('focusout', () => window.requestAnimationFrame(updateFocus));
     if (typeof window.ResizeObserver === 'function') {
         const sizes = new WeakMap();
         const resizeObserver = new window.ResizeObserver(entries => {
@@ -393,5 +380,6 @@
     connection?.addEventListener?.('change', configureMotion);
     window.addEventListener('lioravenn:motion-change', configureMotion);
     document.fonts?.ready.then(invalidate);
+    updateFocus();
     configureMotion();
 })();

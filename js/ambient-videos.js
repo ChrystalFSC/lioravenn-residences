@@ -3,9 +3,10 @@
 
   // Pick once when a video is first needed; resizing never restarts a healthy stream.
   function selectVideoQuality(environment = {}) {
-    const { width = 1280, coarse = false, memory = 0, cores = 0, downlink = 0, effectiveType = '' } = environment;
-    return width <= 800 || coarse || (memory > 0 && memory <= 4) || (cores > 0 && cores <= 4)
-      || (downlink > 0 && downlink < 2.5) || effectiveType === '3g' ? 'mobile' : 'balanced';
+    const { width = 1280, downlink = 0, effectiveType = '' } = environment;
+    // Desktop 1080p; smaller screens/connections use 720p. Touch support or a
+    // four-core CPU alone is not a reason to serve a blurred desktop background.
+    return width <= 800 || (downlink > 0 && downlink < 5) || effectiveType === '3g' ? 'mobile' : 'balanced';
   }
   function allowsVideo({ reduced = false, saveData = false, effectiveType = '' } = {}) {
     return !reduced && !saveData && effectiveType !== '2g' && effectiveType !== 'slow-2g';
@@ -27,7 +28,6 @@
   const videos = [...document.querySelectorAll('[data-ambient-video]')];
   if (!videos.length) return;
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-  const coarsePointer = window.matchMedia?.('(pointer: coarse)');
   const connection = window.navigator?.connection;
   const hasObserver = typeof window.IntersectionObserver === 'function';
   const entries = [];
@@ -35,8 +35,7 @@
   const permitted = () => allowsVideo({ reduced: window.LioravennMotion ? !window.LioravennMotion.isEnabled() : !!reducedMotion?.matches,
     saveData: !!connection?.saveData, effectiveType: connection?.effectiveType });
   const shouldPlay = entry => permitted() && !document.hidden && entry.visible && !entry.failed;
-  const quality = () => selectVideoQuality({ width: window.innerWidth, coarse: !!coarsePointer?.matches,
-    memory: window.navigator?.deviceMemory, cores: window.navigator?.hardwareConcurrency,
+  const quality = () => selectVideoQuality({ width: window.innerWidth,
     downlink: connection?.downlink, effectiveType: connection?.effectiveType });
 
   function showPoster(entry) { entry.surface?.classList.remove('is-playing'); }
@@ -133,7 +132,7 @@
     return loadChoice(entry, 0);
   }
   function recover(entry) {
-    // Bounded fallback: desktop MP4 -> lighter MP4 -> supported WebM -> poster.
+    // Bounded fallback: 1080p MP4 -> 720p MP4 -> supported WebM -> poster.
     if (!permitted() || document.hidden || entry.failed) return;
     if (loadChoice(entry, entry.index + 1) && entry.visible) requestPlay(entry);
   }
