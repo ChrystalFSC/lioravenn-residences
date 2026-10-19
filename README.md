@@ -95,7 +95,7 @@ Home selections travel through page URLs. Saved favourites and valid calculator 
 The original portal-shaped **L** monogram, Cormorant Garamond headings, and Manrope body text create a consistent identity across the website and exported brochure.
 
 - **Responsive layouts:** the same tools adapt to desktop and phone screens.
-- **Scroll storytelling:** architectural photo shutters, a sticky deck of residence cards and an expanding video frame give the homepage three distinct scenes. Motion reverses with your scroll and includes data-saving support.
+- **Scroll storytelling across all seven pages:** architectural shutters, a peeling residence deck, fanning floor plans, unfolding photos, rotating gallery prints and an opening booklet. Motion reverses with your scroll and includes data-saving support.
 - **Keyboard access:** skip links, focus handling, accessible dialogs, and keyboard-operated room tabs.
 - **Sharper imagery:** high-quality WebP assets with preserved originals and [documented AI-restoration provenance](img/enhanced/README.md).
 

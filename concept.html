@@ -16,20 +16,23 @@
     <script src="js/data.js?v=20261018-performance2" defer></script>
     <script src="js/main.js?v=20261018-performance2" defer></script>
   <link rel="stylesheet" href="css/scroll-motion.css?v=20261019-editorial">
-  <script src="js/scroll-motion.js?v=20261019-editorial" defer></script>
+  <script src="js/scroll-motion.js?v=20261019-scenes-all" defer></script>
+  <link rel="stylesheet" href="css/scroll-scenes.css?v=20261019-scenes-all">
+  <link rel="stylesheet" href="css/interior-scenes.css?v=20261019-scenes-all">
+  <script src="js/scroll-scenes.js?v=20261019-scenes-all" defer></script>
 </head>
 <body class="concept-page">
     <div id="site-header"></div>
     <main id="main-content">
-        <section class="life-intro container" aria-labelledby="life-title">
+        <section class="life-intro container" aria-labelledby="life-title" data-scroll-scene="title">
             <div class="life-intro-copy">
                 <p class="eyebrow">THE LIORAVENN LIFE</p>
-                <h1 id="life-title"><span class="sm-heading-line">A little closer</span> <span class="sm-heading-line">to <em>what matters.</em></span></h1>
+                <h1 id="life-title"><span class="sm-heading-line"><span class="scene-title-line">A little closer</span></span> <span class="sm-heading-line"><span class="scene-title-line">to <em>what matters.</em></span></span></h1>
                 <p class="life-intro-description">The luxury of slowing down. Of room to grow. Of feeling at home, before you even step inside.</p>
                 <a class="text-link" href="#everyday">Discover a different rhythm <span aria-hidden="true">↗</span></a>
                 <span class="life-intro-number" aria-hidden="true">01 — THE PHILOSOPHY</span>
             </div>
-            <figure class="life-intro-image">
+            <figure class="life-intro-image" data-scene-art="hinge">
                 <img src="img/enhanced/Garden%20Area.webp" alt="A garden path framed by flowering plants and mature trees" width="1622" height="969" fetchpriority="high">
                 <figcaption>A softer pace. A greener outlook.</figcaption>
             </figure>
@@ -45,7 +48,7 @@
         </section>
         <section id="everyday" class="life-stories container" aria-label="A day in the Lioravenn life">
             <article class="life-story">
-                <figure class="life-story-image">
+                <figure class="life-story-image" data-scene-art="hinge">
                     <img src="img/enhanced/living_room.webp" alt="An open living and dining room filled with natural light" width="1537" height="1023" loading="lazy">
                     <figcaption><span>01</span> SPACE TO BE YOURSELF</figcaption>
                 </figure>
@@ -57,7 +60,7 @@
                 </div>
             </article>
             <article class="life-story life-story-reverse">
-                <figure class="life-story-image">
+                <figure class="life-story-image" data-scene-art="hinge">
                     <img src="img/enhanced/pool.webp" alt="An open-air swimming pool with a timber deck and sun loungers" width="1536" height="1024" loading="lazy">
                     <figcaption><span>02</span> TIME FOR A LITTLE STILLNESS</figcaption>
                 </figure>

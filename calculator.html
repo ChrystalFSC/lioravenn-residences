@@ -14,18 +14,22 @@
     <script defer src="js/main.js?v=20261018-performance2"></script>
     <script defer src="js/calculator.js?v=20261018-performance2"></script>
   <link rel="stylesheet" href="css/scroll-motion.css?v=20261019-editorial">
-  <script src="js/scroll-motion.js?v=20261019-editorial" defer></script>
+  <script src="js/scroll-motion.js?v=20261019-scenes-all" defer></script>
+  <link rel="stylesheet" href="css/scroll-scenes.css?v=20261019-scenes-all">
+  <link rel="stylesheet" href="css/interior-scenes.css?v=20261019-scenes-all">
+  <script src="js/scroll-scenes.js?v=20261019-scenes-all" defer></script>
 </head>
 <body>
     <div id="site-header"></div>
     <main id="main-content">
-        <section class="page-intro finance-intro">
+        <section class="page-intro finance-intro" data-scroll-scene="title" data-scene-art="balance">
             <div class="container">
                 <span class="eyebrow">A little clarity for your next chapter</span>
-                <h1><span class="sm-heading-line">Make room</span> <span class="sm-heading-line">for your future.</span></h1>
+                <h1><span class="sm-heading-line"><span class="scene-title-line">Make room</span></span> <span class="sm-heading-line"><span class="scene-title-line">for your future.</span></span></h1>
                 <p>Find a comfortable starting point. Explore the numbers behind a home you love, with an estimate shaped around you.</p>
             </div>
             <span class="finance-intro-mark" aria-hidden="true">L</span>
+            <div class="scene-balance-bars" aria-hidden="true"><span data-scene-part></span><span data-scene-part></span><span data-scene-part></span><span data-scene-part></span></div>
         </section>
 
         <section class="finance-section" aria-label="Home loan calculator">

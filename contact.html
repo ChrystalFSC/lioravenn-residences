@@ -14,14 +14,17 @@
     <script defer src="js/main.js?v=20261018-performance2"></script>
     <script defer src="js/contact.js?v=20261018-performance2"></script>
   <link rel="stylesheet" href="css/scroll-motion.css?v=20261019-editorial">
-  <script src="js/scroll-motion.js?v=20261019-editorial" defer></script>
+  <script src="js/scroll-motion.js?v=20261019-scenes-all" defer></script>
+  <link rel="stylesheet" href="css/scroll-scenes.css?v=20261019-scenes-all">
+  <link rel="stylesheet" href="css/interior-scenes.css?v=20261019-scenes-all">
+  <script src="js/scroll-scenes.js?v=20261019-scenes-all" defer></script>
 </head>
 <body>
     <div id="site-header"></div>
     <main id="main-content">
-        <section class="page-intro viewing-intro">
+        <section class="page-intro viewing-intro" data-scroll-scene="title">
             <div class="container viewing-intro-inner">
-                <div><span class="eyebrow">An invitation to slow down</span><h1><span class="sm-heading-line">Come for a visit.</span> <span class="sm-heading-line">Stay for the feeling.</span></h1><p>See how the light falls. Find your favourite corner. Picture the everyday moments that could be yours.</p></div>
+                <div><span class="eyebrow">An invitation to slow down</span><h1><span class="sm-heading-line"><span class="scene-title-line">Come for a visit.</span></span> <span class="sm-heading-line"><span class="scene-title-line">Stay for the feeling.</span></span></h1><p>See how the light falls. Find your favourite corner. Picture the everyday moments that could be yours.</p></div>
                 <div class="viewing-intro-note"><span aria-hidden="true">01 — 03</span><p>A personal introduction<br>to life at Lioravenn.</p></div>
             </div>
         </section>
@@ -29,7 +32,7 @@
         <section class="viewing-section" aria-label="Prepare a viewing request">
             <div class="container viewing-layout">
                 <div class="viewing-story">
-                    <div class="viewing-photo"><img id="viewing-image" src="img/enhanced/bedroom.webp" alt="A warm, light-filled bedroom at The Solis" decoding="async"><span>A space that feels like you.</span></div>
+                    <div class="viewing-photo" data-scene-art="shutters-vertical"><img id="viewing-image" src="img/enhanced/bedroom.webp" alt="A warm, light-filled bedroom at The Solis" decoding="async"><span>A space that feels like you.</span></div>
                     <div class="viewing-home">
                         <div><span id="viewing-unit-label" class="eyebrow">Your residence / Type A</span><h2 id="viewing-unit-name">The Solis</h2><p id="viewing-unit-spec">1 bedroom · 1 bathroom · 947 sq ft</p></div>
                         <a class="viewing-home-link" id="viewing-plan-link" href="floor-plans.html?unit=type-a" aria-label="Explore The Solis floor plan">↗</a>

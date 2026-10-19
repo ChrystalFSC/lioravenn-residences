@@ -15,17 +15,20 @@
     <link rel="stylesheet" href="css/gallery.css?v=20261018-performance2">
     <script src="js/data.js?v=20261018-performance2" defer></script>
     <script src="js/main.js?v=20261018-performance2" defer></script>
-    <script src="js/gallery.js?v=20261018-performance2" defer></script>
+    <script src="js/gallery.js?v=20261019-scenes-all" defer></script>
   <link rel="stylesheet" href="css/scroll-motion.css?v=20261019-editorial">
-  <script src="js/scroll-motion.js?v=20261019-editorial" defer></script>
+  <script src="js/scroll-motion.js?v=20261019-scenes-all" defer></script>
+  <link rel="stylesheet" href="css/scroll-scenes.css?v=20261019-scenes-all">
+  <link rel="stylesheet" href="css/interior-scenes.css?v=20261019-scenes-all">
+  <script src="js/scroll-scenes.js?v=20261019-scenes-all" defer></script>
 </head>
 <body class="gallery-page">
     <div id="site-header"></div>
     <main id="main-content">
-        <section class="collection-intro container" aria-labelledby="collection-title">
+        <section class="collection-intro container" aria-labelledby="collection-title" data-scroll-scene="title">
             <div>
                 <p class="eyebrow">THE COLLECTION</p>
-                <h1 id="collection-title"><span class="sm-heading-line">See the spaces.</span> <span class="sm-heading-line"><em>Feel the possibility.</em></span></h1>
+                <h1 id="collection-title"><span class="sm-heading-line"><span class="scene-title-line">See the spaces.</span></span> <span class="sm-heading-line"><span class="scene-title-line"><em>Feel the possibility.</em></span></span></h1>
             </div>
             <div class="collection-intro-copy">
                 <p>Thoughtful interiors. Quiet green corners. A little inspiration for the life you could make here.</p>
@@ -44,39 +47,39 @@
             </div>
             <div class="collection-grid">
                 <button class="collection-item collection-item-wide" type="button" data-category="interiors" data-title="The art of coming home" data-description="An inviting living and dining space, filled with natural light.">
-                    <span class="collection-image"><img src="img/enhanced/living_room.webp" alt="A light-filled open living and dining room" width="1537" height="1023" fetchpriority="high"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/enhanced/living_room.webp" alt="A light-filled open living and dining room" width="1537" height="1023" fetchpriority="high"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">The art of coming home</span><span class="collection-category">INTERIORS</span></span>
                 </button>
                 <button class="collection-item" type="button" data-category="nature" data-title="A greener kind of quiet" data-description="A garden path with flowering borders and a canopy of trees.">
-                    <span class="collection-image"><img src="img/enhanced/Garden%20Area.webp" alt="A garden path surrounded by lush plants" width="1622" height="969" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/enhanced/Garden%20Area.webp" alt="A garden path surrounded by lush plants" width="1622" height="969" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">A greener kind of quiet</span><span class="collection-category">NATURE</span></span>
                 </button>
                 <button class="collection-item" type="button" data-category="interiors" data-title="Your personal retreat" data-description="Warm materials and soft tones create a restful bedroom setting.">
-                    <span class="collection-image"><img src="img/enhanced/bedroom.webp" alt="A bedroom styled in warm neutral tones" width="1549" height="1015" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/enhanced/bedroom.webp" alt="A bedroom styled in warm neutral tones" width="1549" height="1015" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">Your personal retreat</span><span class="collection-category">INTERIORS</span></span>
                 </button>
                 <button class="collection-item collection-item-wide" type="button" data-category="amenities" data-title="An afternoon, well spent" data-description="Open-air poolside relaxation with room to unwind.">
-                    <span class="collection-image"><img src="img/enhanced/pool.webp" alt="A swimming pool with loungers on a timber deck" width="1536" height="1024" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/enhanced/pool.webp" alt="A swimming pool with loungers on a timber deck" width="1536" height="1024" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">An afternoon, well spent</span><span class="collection-category">AMENITIES</span></span>
                 </button>
                 <button class="collection-item" type="button" data-category="interiors" data-title="Made for everyday rituals" data-description="An inviting kitchen setting for a slower start or a shared meal.">
-                    <span class="collection-image"><img src="img/optimized/kitchen.webp" alt="A contemporary kitchen with ample preparation space" width="876" height="584" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/optimized/kitchen.webp" alt="A contemporary kitchen with ample preparation space" width="876" height="584" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">Made for everyday rituals</span><span class="collection-category">INTERIORS</span></span>
                 </button>
                 <button class="collection-item" type="button" data-category="amenities" data-title="A little more energy" data-description="A fitness space to inspire a daily routine at your own pace.">
-                    <span class="collection-image"><img src="img/optimized/gym.webp" alt="An indoor fitness room with exercise equipment" width="875" height="583" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/optimized/gym.webp" alt="An indoor fitness room with exercise equipment" width="875" height="583" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">A little more energy</span><span class="collection-category">AMENITIES</span></span>
                 </button>
                 <button class="collection-item" type="button" data-category="amenities" data-title="Space to come together" data-description="A clubhouse setting for gathering and enjoying good company.">
-                    <span class="collection-image"><img src="img/optimized/Clubhouse.webp" alt="A clubhouse space for residents to gather" width="1000" height="665" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/optimized/Clubhouse.webp" alt="A clubhouse space for residents to gather" width="1000" height="665" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">Space to come together</span><span class="collection-category">AMENITIES</span></span>
                 </button>
                 <button class="collection-item" type="button" data-category="interiors" data-title="The considered details" data-description="A bathroom interior that pairs simple forms with warm finishes.">
-                    <span class="collection-image"><img src="img/optimized/Bathroom.webp" alt="A contemporary bathroom with warm materials" width="1000" height="666" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/optimized/Bathroom.webp" alt="A contemporary bathroom with warm materials" width="1000" height="666" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">The considered details</span><span class="collection-category">INTERIORS</span></span>
                 </button>
                 <button class="collection-item collection-item-wide" type="button" data-category="amenities" data-title="A different perspective" data-description="A second view of the pool and its outdoor setting.">
-                    <span class="collection-image"><img src="img/optimized/pool2.webp" alt="A second perspective of the outdoor pool" width="875" height="583" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
+                    <span class="collection-image" data-scene-art="gallery"><img src="img/optimized/pool2.webp" alt="A second perspective of the outdoor pool" width="875" height="583" loading="lazy"><span class="collection-expand" aria-hidden="true">↗</span></span>
                     <span class="collection-caption"><span class="collection-item-title">A different perspective</span><span class="collection-category">AMENITIES</span></span>
                 </button>
             </div>

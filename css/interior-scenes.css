@@ -1,0 +1,121 @@
+/* Interior scenes keep the tools in their original document flow. Geometry is
+   owned by inner art layers; captions, buttons and form fields stay still. */
+[data-scroll-scene="title"] h1 .sm-heading-line {
+    display: block;
+    overflow: hidden;
+    padding-block: .16em;
+    margin-block: -.16em;
+}
+.scene-title-line { display: block; opacity: 1; }
+.scene-motion-enabled .scene-title-line {
+    transform: translateX(var(--scene-title-x,0px)) rotate(var(--scene-title-turn,0deg));
+    transform-origin: center;
+    transition: none;
+}
+.scene-art-window { display: block; position: relative; width: 100%; overflow: hidden; perspective: 1000px; }
+.scene-art-layer { position: relative; width: 100%; height: 100%; transform-origin: center; backface-visibility: hidden; }
+.life-intro-image>.scene-art-window { height: 100%; }
+.life-story-image>.scene-art-window { height: auto; }
+.scene-motion-enabled [data-scene-art="hinge"] .scene-art-layer {
+    transform: translateX(var(--scene-art-x,0%)) translateY(var(--scene-art-y,0px)) rotateY(var(--scene-art-turn,0deg)) scale(var(--scene-art-scale,1));
+}
+[data-scene-art="gallery"]>.scene-art-window { height: 100%; }
+[data-scene-art="gallery"]>.scene-art-window>.scene-art-layer { height: 100%; }
+[data-scene-art="gallery"]>.collection-expand { z-index: 4; }
+.scene-motion-enabled [data-scene-art="gallery"] .scene-art-layer {
+    transform: translateX(var(--scene-art-x,0%)) translateY(var(--scene-art-y,0px)) rotate(var(--scene-art-turn,0deg)) scale(var(--scene-art-scale,1));
+}
+.collection-item:focus-visible .scene-art-layer { transform: none!important; }
+[data-scene-art="shutters-vertical"]>.scene-art-window { position: absolute; inset: 0; height: 100%; isolation: isolate; }
+[data-scene-art="shutters-vertical"] .scene-art-layer>img { width: 100%; height: 100%; object-fit: cover; }
+.scene-art-curtains { display: none; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.scene-motion-enabled .scene-art-curtains { display: block; }
+.scene-art-curtains::before,.scene-art-curtains::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 50.1%; background: var(--ivory,#f6f4ed);
+}
+.scene-art-curtains::before { top: 0; border-bottom: 1px solid var(--brass,#aa8955); transform: translateY(var(--scene-curtain-before,-100%)); }
+.scene-art-curtains::after { bottom: 0; border-top: 1px solid var(--brass,#aa8955); transform: translateY(var(--scene-curtain-after,100%)); }
+.scene-motion-enabled [data-scene-art],
+.scene-motion-enabled [data-scene-art] .sm-reveal,
+.scene-motion-enabled [data-scene-art] .sm-image-reveal,
+.scene-motion-enabled [data-scene-art] .sm-heading-line { opacity: 1!important; }
+
+/* Original, unmodified floor-plan images fan across a separate decorative rail. */
+.scene-plan-display { height: 320px; margin-top: 42px; position: relative; isolation: isolate; overflow: hidden; }
+.scene-plan-sheet {
+    position: absolute; left: 50%; top: 24px; bottom: 32px; width: calc(33.333% - 12px); max-width: 260px;
+    padding: 14px 14px 12px; background: #fffefa; border: 1px solid #d1d6c8; box-shadow: 0 8px 22px #183c3012;
+    z-index: 1; transform: translateX(-50%);
+}
+.scene-plan-sheet:first-child { transform: translateX(-50%) translateX(-104%) translateY(6px) rotate(-9deg); }
+.scene-plan-sheet:nth-child(2) { z-index: 2; }
+.scene-plan-sheet:last-child { transform: translateX(-50%) translateX(104%) translateY(6px) rotate(9deg); }
+.scene-motion-enabled .scene-plan-sheet {
+    transform: translateX(-50%) translateX(var(--scene-part-x,0%)) translateY(var(--scene-part-y,0px)) rotate(var(--scene-part-turn,0deg)) scale(var(--scene-part-scale,1));
+}
+.scene-plan-sheet>img { width: 100%; height: calc(100% - 30px); object-fit: contain; }
+.scene-plan-sheet>span { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; color: var(--forest,#183c30); font: 500 17px 'Cormorant Garamond',Georgia,serif; }
+.scene-plan-sheet small { font: 9px 'Manrope',Arial,sans-serif; letter-spacing: .1em; color: var(--brass,#aa8955); white-space: nowrap; }
+
+/* The calculator's background assembles without moving inputs or estimates. */
+.finance-intro .finance-intro-mark { color: rgba(27,64,48,.10); pointer-events: none; transform-origin: 50% 75%; }
+.scene-motion-enabled .finance-intro-mark { transform: translateY(var(--scene-monogram-y,0px)) rotate(var(--scene-monogram-turn,0deg)); }
+.scene-balance-bars { position: absolute; right: 6%; bottom: 15px; width: min(42%,460px); height: 150px; pointer-events: none; }
+.scene-balance-bars>span {
+    position: absolute; left: 0; bottom: 0; width: 19%; height: 40%; border: 1px solid #aa89557a; background: #183c3009;
+    transform: none;
+    transform-origin: bottom center;
+}
+.scene-motion-enabled .scene-balance-bars>span {
+    transform: translateX(var(--scene-part-x,0%)) translateY(var(--scene-part-y,0px)) rotate(var(--scene-part-turn,0deg)) scale(var(--scene-part-scale,1));
+}
+.scene-balance-bars>span:nth-child(2) { left: 27%; height: 60%; }
+.scene-balance-bars>span:nth-child(3) { left: 54%; height: 80%; }
+.scene-balance-bars>span:nth-child(4) { left: 81%; height: 100%; }
+
+/* The booklet is an intro illustration, separate from the real PDF preview. */
+.scene-intro-with-art { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(240px,.8fr); gap: clamp(32px,5vw,80px); align-items: center; }
+.scene-intro-copy { min-width: 0; }
+.scene-book-display { position: relative; width: min(100%,380px); height: 340px; margin-inline: auto; perspective: 900px; }
+.scene-book-leaf,.scene-book-cover {
+    position: absolute; left: 50%; top: 7%; width: 58%; height: 86%; border: 1px solid #d1d6c8; box-shadow: 0 10px 22px #183c3015;
+}
+.scene-book-leaf {
+    padding: 16px; background: #fffefa;
+    transform: translateX(-50%);
+}
+.scene-book-leaf:first-child { z-index: 1; transform: translateX(-50%) translateX(-26%) translateY(2px) rotate(-9deg); }
+.scene-book-leaf:nth-child(2) { z-index: 2; transform: translateX(-50%) translateX(26%) translateY(2px) rotate(9deg); }
+.scene-motion-enabled .scene-book-leaf {
+    transform: translateX(-50%) translateX(var(--scene-part-x,0%)) translateY(var(--scene-part-y,0px)) rotate(var(--scene-part-turn,0deg)) scale(var(--scene-part-scale,1));
+}
+.scene-book-leaf>img { width: 100%; height: 64%; object-fit: cover; }
+.scene-book-lines { display: block; height: 36px; margin-top: 20px; background: repeating-linear-gradient(to bottom,#d7dacc 0,#d7dacc 1px,transparent 1px,transparent 10px); }
+.scene-book-cover {
+    z-index: 3; padding: 28px 18px; color: var(--ivory,#f6f4ed); background: var(--forest,#183c30); border-color: #526b53;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    transform: translateX(-50%) rotateY(-65deg); transform-origin: left center; backface-visibility: hidden;
+}
+.scene-motion-enabled .scene-book-cover { transform: translateX(-50%) rotateY(var(--scene-book-open,-65deg)); }
+.scene-book-mark { display: grid; place-items: center; width: 66px; height: 82px; border: 1px solid #cbb58b; border-radius: 34px 34px 0 0; color: #d5bd8e; font: 54px/1 'Cormorant Garamond',Georgia,serif; margin-bottom: 24px; }
+.scene-book-name { font: 14px/1.7 'Manrope',Arial,sans-serif; letter-spacing: .14em; }
+.scene-book-edition { font: 7px/1.6 'Manrope',Arial,sans-serif; letter-spacing: .15em; color: #cbb58b; margin-top: 24px; }
+
+@media(max-width:900px) {
+    .scene-intro-with-art { grid-template-columns: 1fr; gap: 20px; }
+    .scene-book-display { width: min(100%,340px); height: 320px; }
+}
+@media(max-width:600px) {
+    .scene-plan-display { height: 260px; margin-top: 26px; }
+    .scene-plan-sheet { width: calc(33.333% - 6px); padding: 8px; }
+    .scene-plan-sheet>span { display: block; font-size: 14px; line-height: 1.1; margin-top: 7px; }
+    .scene-plan-sheet small { display: block; font-size: 8px; margin-top: 3px; }
+    .scene-balance-bars { right: 4%; bottom: 12px; width: 48%; height: 125px; }
+}
+.sm-reduced .scene-title-line,.sm-reduced .scene-art-layer,.sm-reduced .finance-intro-mark { transform: none!important; opacity: 1!important; }
+.sm-reduced .scene-art-curtains { display: none; }
+@media print {
+    .scene-title-line,.scene-art-layer,.finance-intro-mark { transform: none!important; opacity: 1!important; }
+    .scene-art-curtains,.scene-plan-display,.scene-balance-bars,.scene-book-display { display: none!important; }
+    .scene-intro-with-art { display: block; }
+}

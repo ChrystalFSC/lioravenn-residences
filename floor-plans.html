@@ -16,22 +16,30 @@
     <script defer src="js/floor-plans.js?v=20261018-performance2"></script>
     <script defer src="js/site-plan.js?v=20261018-performance2"></script>
   <link rel="stylesheet" href="css/scroll-motion.css?v=20261019-editorial">
-  <script src="js/scroll-motion.js?v=20261019-editorial" defer></script>
+  <script src="js/scroll-motion.js?v=20261019-scenes-all" defer></script>
+  <link rel="stylesheet" href="css/scroll-scenes.css?v=20261019-scenes-all">
+  <link rel="stylesheet" href="css/interior-scenes.css?v=20261019-scenes-all">
+  <script src="js/scroll-scenes.js?v=20261019-scenes-all" defer></script>
 </head>
 <body>
     <div id="site-header"></div>
     <main id="main-content" class="home-finder">
-        <section class="page-intro finder-intro">
+        <section class="page-intro finder-intro" data-scroll-scene="title">
             <div class="container finder-intro-layout">
                 <div>
                     <p class="eyebrow">The residence collection</p>
-                    <h1><span class="sm-heading-line">A space that</span> <span class="sm-heading-line">feels like <em>you.</em></span></h1>
+                    <h1><span class="sm-heading-line"><span class="scene-title-line">A space that</span></span> <span class="sm-heading-line"><span class="scene-title-line">feels like <em>you.</em></span></span></h1>
                 </div>
                 <div class="finder-intro-copy">
                     <p>From a quiet first home to room for a growing family. Discover three considered layouts, each with its own way of making everyday life feel effortless.</p>
                     <p class="finder-disclaimer">Illustrative prices · Concept development</p>
                     <div class="button-row finder-tools"><a class="text-link" href="#finder-heading">Browse the layouts <span aria-hidden="true">↓</span></a><a class="text-link" href="brochure.html">Build my brochure <span aria-hidden="true">↗</span></a></div>
                 </div>
+            </div>
+            <div class="scene-plan-display container" data-scene-art="plans" aria-hidden="true">
+                <div class="scene-plan-sheet" data-scene-part><img src="img/floorplan-a.png" alt="" width="401" height="600" loading="lazy"><span>The Solis <small>TYPE A</small></span></div>
+                <div class="scene-plan-sheet" data-scene-part><img src="img/floorplan-b.png" alt="" width="352" height="600" loading="lazy"><span>The Luma <small>TYPE B</small></span></div>
+                <div class="scene-plan-sheet" data-scene-part><img src="img/floorplan-c.png" alt="" width="444" height="600" loading="lazy"><span>The Seren <small>TYPE C</small></span></div>
             </div>
         </section>
         <section class="site-plan-section" id="site-plan" aria-labelledby="site-plan-heading">

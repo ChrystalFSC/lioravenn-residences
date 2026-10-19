@@ -60,6 +60,8 @@ Editorial headings with explicit line breaks use semantic line spans, with a sma
 
 Three homepage sections instead use structural scenes in `scroll-scenes.js`: ivory shutters slide apart over the welcome photograph; a native sticky showcase lets three residence cards peel away in sequence; and the lifestyle video frame grows from a rounded, tilted inset to a flat full-width surface. These sections stay opaque and are excluded from generic editorial fades. Progress uses stationary document anchors, cached outside ordinary scroll frames. Keyboard focus brings each residence card into view and clears internal scroll offsets. Viewports shorter than 640 pixels show all homes in ordinary flow, and narrow screens reserve space for the fixed viewing link. Motion/data restrictions and print also restore ordinary flow, with no empty sticky runway. Video nodes, sources and playback handling remain unchanged.
 
+The six interior pages also load the scene controller and `interior-scenes.css`. Intro heading lines slide apart; Our Homes fans the original plan sheets; Lifestyle photos unfold within stationary figures; Collection prints rotate and settle inside their fixed buttons; the calculator's architectural backdrop assembles around its monogram; the viewing photo opens between vertical panels; and a decorative booklet opens above the brochure builder. Interactive forms, result graphics, site-plan controls, dialogs and the generated brochure preview remain outside these scene hooks. Image wrappers retain the original image nodes, sources and IDs. Gallery filters and room selection notify layout changes; a coalesced main-size observer refreshes cached anchors after other content changes. A focused gallery tile settles its artwork without moving its button.
+
 Motion is On automatically with no visible motion menu, mode selector or playback-status panel. Old stored modes and motion query parameters are ignored so an earlier Off choice cannot silently suppress the experience. The small background initializer exposes the shared read-only motion state to both controllers. Explicit browser data saving and severely constrained video-connection safeguards still apply.
 
 Higher-resolution concept photographs live in `img/enhanced/`. Six small source photos were faithfully restored with the built-in image-generation tool; their reconstructed texture is illustrative, not verified property detail. Preserved masters, exact output dimensions and restoration prompts are documented in that folder. The existing 1600×900 bedroom photograph also has a higher-quality WebP copy. Enhanced images are used consistently by pages, gallery rooms/lightbox, home cards and brochure/PDF export. Floor plans retain their original geometry and raster source detail; sharper drawings would require higher-resolution originals.
@@ -78,6 +80,7 @@ node tests/brochure-model.test.cjs
 node tests/brochure-pdf.test.cjs
 node tests/scroll-motion.test.cjs
 node tests/scroll-scenes.test.cjs
+node tests/interior-scenes.test.cjs
 node tests/ambient-videos.test.cjs
 node tests/motion-preferences.test.cjs
 ```

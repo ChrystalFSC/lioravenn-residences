@@ -32,6 +32,7 @@
             else url.searchParams.set('filter', category);
             try { window.history.replaceState(null, '', url); } catch (_) { /* Local-file previews can restrict history. */ }
         }
+        window.dispatchEvent(new window.Event('lioravenn:layout-change'));
     }
 
     filters.forEach(button => button.addEventListener('click', () => filterCollection(button.dataset.filter)));
@@ -114,6 +115,7 @@
         document.getElementById('room-label').textContent = room.label;
         document.getElementById('room-story-title').textContent = room.title;
         document.getElementById('room-description').textContent = room.description;
+        window.dispatchEvent(new window.Event('lioravenn:layout-change'));
     }
     tabs.forEach((tab, index) => {
         tab.addEventListener('click', () => selectRoom(tab));
