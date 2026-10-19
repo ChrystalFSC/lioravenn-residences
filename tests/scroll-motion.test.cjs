@@ -8,7 +8,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'js/scroll-motion.js'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'css/scroll-motion.css'), 'utf8');
-const { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport, edgeMotion } = require(path.join(root, 'js/scroll-motion.js'));
+const { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport, edgeMotion, headingLineMotion, imageScale } = require(path.join(root, 'js/scroll-motion.js'));
 let checks = 0;
 function equal(actual, expected, reason) { assert.deepEqual(actual, expected, reason); checks++; }
 equal(clamp(-1), 0); equal(clamp(2), 1); equal(clamp(NaN), 0);
@@ -58,6 +58,33 @@ for (let y = 0; y <= 2000; y += 50) {
     const state = edgeMotion(y, 600, 1000, 350, 80);
     assert(state.opacity >= .08 && state.opacity <= 1 && Math.abs(state.y) <= 48, 'Small mobile viewports retain the full reversible transition without exceeding its bounds'); checks++;
 }
+
+// Every line is derived from the heading's shared geometry, rather than an
+// entry event or a timer. Reversed scrolling must reproduce the same stagger.
+equal(headingLineMotion(0, 1000, 1000, 180, 0, 0, 3), { opacity: .08, y: 34 }, 'An entering heading line starts at its quiet baseline');
+equal(headingLineMotion(0, 1000, 790, 100, 0, 0, 2), { opacity: .54, y: 17 }, 'The leading line is halfway through the broad entry band');
+const staggeredEntry = headingLineMotion(0, 1000, 790, 100, 0, 1, 2);
+assert(staggeredEntry.opacity > .08 && staggeredEntry.opacity < .54 && staggeredEntry.y > 17 && staggeredEntry.y < 34, 'Later lines enter gently behind the leading line'); checks++;
+equal(headingLineMotion(0, 1000, 110, 100, 0, 1, 2), { opacity: .54, y: -17 }, 'The final line leads the reversed top-edge exit');
+const staggeredExit = headingLineMotion(0, 1000, 110, 100, 0, 0, 2);
+assert(staggeredExit.opacity < .54 && staggeredExit.y < -17, 'The first line leaves ahead of the final line'); checks++;
+for (let index = 0; index < 3; index++) equal(headingLineMotion(0, 1000, 400, 180, 0, index, 3), { opacity: 1, y: 0 }, 'All lines remain fully readable in the central region');
+equal(headingLineMotion(0, 1000, 790, 100, 0, 3, 5), headingLineMotion(0, 1000, 790, 100, 0, 4, 5), 'Long headings cap the accumulated line delay');
+equal(headingLineMotion(NaN, 1000, 400, 100, 0, 0, 2), { opacity: 1, y: 0 }, 'Invalid line geometry fails open');
+const linePositions = [0, 210, 350, 600, 1000, 1180, 1390, 1600];
+const lineStates = linePositions.map(y => [0, 1, 2].map(index => headingLineMotion(y, 1000, 1000, 180, 80, index, 3)));
+[...linePositions].reverse().forEach((y, position) => equal([0, 1, 2].map(index => headingLineMotion(y, 1000, 1000, 180, 80, index, 3)), lineStates.at(-1 - position), 'Heading stagger is exactly reversible at the same document position'));
+for (let y = 0; y <= 2000; y += 50) {
+    const states = [0, 1, 2].map(index => headingLineMotion(y, 600, 1000, 210, 80, index, 3));
+    assert(states.every(item => item.opacity >= .08 && item.opacity <= 1 && Math.abs(item.y) <= 34), 'Every mobile heading line stays within its opacity and translation limits'); checks++;
+}
+equal(imageScale(0, 900, 1000, 450), 1.065, 'An unvisited image begins at a small, bounded crop');
+equal(imageScale(1450, 900, 1000, 450), 1, 'Image zoom reaches its original scale after crossing the viewport');
+equal(imageScale(0, 0, 1000, 450), 1, 'Invalid image viewport geometry fails open');
+const scalePositions = [0, 150, 400, 775, 1100, 1450, 2000];
+const scales = scalePositions.map(y => imageScale(y, 900, 1000, 450));
+assert(scales.every((scale, index) => scale >= 1 && scale <= 1.065 && (!index || scale <= scales[index - 1])), 'Image zoom remains bounded and settles gradually throughout a viewport traversal'); checks++;
+[...scalePositions].reverse().forEach((y, index) => equal(imageScale(y, 900, 1000, 450), scales.at(-1 - index), 'Image zoom reverses without accumulating a scale'));
 
 class Element {
     constructor(tag, engine, attrs = {}, bounds = {}) {
@@ -132,7 +159,7 @@ class Element {
     }
 }
 
-function fixture({ home = true, reduced = false, io = true, raf = true, narrow = false, coarse = false, touchPoints = 0, cores = 8, memory = 8, ioThrows = false, transformedCopy = false, transformedHero = false, motionMode = 'on', resizeObserver = true } = {}) {
+function fixture({ home = true, reduced = false, io = true, raf = true, narrow = false, coarse = false, touchPoints = 0, cores = 8, memory = 8, ioThrows = false, transformedCopy = false, transformedHero = false, motionMode = 'on', resizeObserver = true, lineHeadings = false } = {}) {
     const engine = { observers: [], resizeObservers: [], frames: new Map(), timers: [], nextFrame: 1, geometryReads: 0 };
     const media = matches => ({ matches, callbacks: [], addEventListener(name, callback) { this.callbacks.push(callback); }, change(value) { this.matches = value; this.callbacks.forEach(callback => callback()); } });
     engine.reduce = media(reduced); engine.narrow = media(narrow); engine.coarse = media(coarse);
@@ -167,6 +194,20 @@ function fixture({ home = true, reduced = false, io = true, raf = true, narrow =
         addEventListener(name, callback) { (documentEvents[name] ||= []).push(callback); }
     };
     const create = (tag, parent, attrs = {}, bounds = {}) => { const node = new Element(tag, engine, attrs, bounds); parent.append(node); return node; };
+    const createLineHeading = (parent, attrs, bounds, texts) => {
+        const heading = create('h2', parent, attrs, bounds);
+        texts.forEach((text, index) => {
+            const line = create('span', heading, { class: 'sm-heading-line' }, { top: bounds.top + index * 44, height: 44 });
+            line.textContent = text;
+            if (index === texts.length - 1) {
+                const emphasis = create('em', line);
+                emphasis.textContent = text;
+                heading.originalEmphasis = emphasis;
+            }
+        });
+        heading.originalLines = [...heading.children];
+        return heading;
+    };
     const header = create('header', body, { class: 'site-header' }, { height: 96 });
     const main = create('main', body, { id: 'main-content' }, { height: 6000 });
     engine.main = main;
@@ -190,6 +231,14 @@ function fixture({ home = true, reduced = false, io = true, raf = true, narrow =
         engine.heading.textContent = 'Space for the life you want to live.';
         if (transformedCopy) engine.heading.existingTransform = 'matrix(1,0,0,1,3,0)';
         create('p', engine.sections[2], {}, { top: 1200 });
+        if (lineHeadings) {
+            engine.lineHeading = createLineHeading(engine.sections[2], { id: 'line-heading', 'aria-describedby': 'line-caption' }, { top: 1280, height: 132 }, ['A home should give you', 'more than a place to live.', 'It should give you room to feel.']);
+            if (transformedCopy) engine.lineHeading.existingTransform = 'matrix(1,0,0,1,3,0)';
+            engine.twoLineHeading = createLineHeading(engine.sections[4], {}, { top: 2800, height: 88 }, ['The luxury of', 'everyday rituals.']);
+            engine.eyebrow = create('p', engine.sections[2], { class: 'eyebrow' }, { top: 1240, height: 28 });
+            engine.eyebrow.textContent = 'Considered living';
+            engine.heroEyebrow = create('p', engine.heroCopy, { class: 'eyebrow' }, { top: 200, height: 28 });
+        }
         const homeUnit = create('a', engine.sections[3], { class: 'home-unit', href: 'floor-plans.html?unit=type-b' }, { top: 1900, height: 500 });
         engine.card = homeUnit;
         engine.cardImage = create('div', homeUnit, { class: 'home-unit-image' }, { top: 1900, height: 250 });
@@ -203,7 +252,11 @@ function fixture({ home = true, reduced = false, io = true, raf = true, narrow =
         create('img', exploreImage, {}, { top: 4506, height: 570 });
         create('h2', engine.sections[6], {}, { top: 4600 });
         create('h2', engine.sections[7], {}, { top: 5200 });
-    } else create('h1', create('section', main, { class: 'page-intro' }), {}, { top: 200 });
+    } else {
+        const intro = create('section', main, { class: 'page-intro' });
+        create('h1', intro, {}, { top: 200 });
+        if (lineHeadings) engine.lineHeading = createLineHeading(intro, {}, { top: 600, height: 88 }, ['A considered place.', 'A personal beginning.']);
+    }
     const form = create('form', main, { id: 'test-form' });
     engine.formHeading = create('h2', form, {}, { top: 800 });
     engine.input = create('input', form, { name: 'amount', value: '100' });
@@ -215,6 +268,12 @@ function fixture({ home = true, reduced = false, io = true, raf = true, narrow =
     engine.protectedCopy = create('p', engine.preview, {}, { top: 2700 });
     const dialog = create('dialog', main);
     engine.dialogHeading = create('h2', dialog, {}, { top: 600 });
+    if (lineHeadings) {
+        engine.excludedLineHeadings = [form, tool, engine.preview, dialog].map((parent, index) => createLineHeading(parent, {}, { top: 900 + index * 300, height: 88 }, ['Always ready', 'to use.']));
+        const disabledMotion = create('div', main, { 'data-motion': 'off' });
+        engine.excludedLineHeadings.push(createLineHeading(disabledMotion, {}, { top: 700, height: 88 }, ['Keep this', 'still.']));
+        engine.excludedEyebrow = create('p', form, { class: 'eyebrow' }, { top: 700, height: 28 });
+    }
     if (io) engine.window.IntersectionObserver = class {
         constructor(callback, options) { if (ioThrows) throw new Error('Observer unavailable'); this.callback = callback; this.options = options; this.targets = []; this.unobserved = []; engine.observers.push(this); }
         observe(node) { this.targets.push(node); }
@@ -486,6 +545,150 @@ equal(brochure.document.body.querySelectorAll('.sm-chapters').length, 0);
 equal(brochure.main.querySelectorAll('.sm-visual-frame').length, 0);
 equal(brochure.previewHeading.classList.contains('sm-reveal'), false);
 
+function lineState(heading) {
+    return heading.querySelectorAll('.sm-heading-line').map(line => ({ opacity: Number(line.style['--sm-line-opacity'] ?? 1), y: parseFloat(line.style['--sm-line-y']) || 0 }));
+}
+function expectedLines(engine, heading) {
+    const lines = heading.querySelectorAll('.sm-heading-line');
+    return lines.map((line, index) => headingLineMotion(engine.window.scrollY, engine.window.innerHeight, heading.bounds.top, heading.bounds.height, 96, index, lines.length));
+}
+const lineFixture = fixture({ lineHeadings: true });
+const originalLines = [...lineFixture.lineHeading.originalLines];
+const originalEmphasis = lineFixture.lineHeading.originalEmphasis;
+equal(lineFixture.lineHeading.classList.contains('sm-heading-reveal'), true, 'Pre-authored line spans receive the heading-specific enhancement');
+equal(lineFixture.lineHeading.classList.contains('sm-reveal'), false, 'Staggered lines do not receive a second whole-heading opacity fade');
+equal(lineFixture.lineHeading.classList.contains('sm-shift-reveal'), false, 'The heading layout container does not move with its children');
+equal(lineFixture.lineHeading.style['--sm-y'], undefined, 'Only line spans receive heading translations');
+equal(lineState(lineFixture.lineHeading), [{ opacity: .08, y: 34 }, { opacity: .08, y: 34 }, { opacity: .08, y: 34 }], 'Every distant line is initialized before the first visit');
+equal(lineFixture.twoLineHeading.querySelectorAll('.sm-heading-line').length, 2, 'Two-line editorial headings use the same enhancement');
+const lineDOMPositions = [0, 450, 550, 700, 800, 900, 1050, 1200, 1400, 5000];
+const lineDOMStates = new Map();
+const ruleDOMStates = new Map();
+const lineGeometryReads = lineFixture.geometryReads;
+for (const y of lineDOMPositions) {
+    lineFixture.scroll(y);
+    const current = lineState(lineFixture.lineHeading);
+    equal(current, expectedLines(lineFixture, lineFixture.lineHeading), 'Rendered line styles follow the shared cached heading geometry');
+    lineDOMStates.set(y, current);
+    const rule = Number(lineFixture.eyebrow.style['--sm-rule-progress']);
+    assert(rule >= 0 && rule <= 1, 'The decorative rule never draws outside its bounded range'); checks++;
+    ruleDOMStates.set(y, rule);
+}
+assert(lineDOMStates.get(550)[0].opacity > lineDOMStates.get(550)[1].opacity && lineDOMStates.get(550)[1].opacity > lineDOMStates.get(550)[2].opacity, 'Actual DOM lines enter in their reading order'); checks++;
+equal(lineDOMStates.get(900), [{ opacity: 1, y: 0 }, { opacity: 1, y: 0 }, { opacity: 1, y: 0 }], 'The full heading is readable together in the central reading area');
+equal(ruleDOMStates.get(0), 0, 'The brass rule begins undrawn');
+equal(ruleDOMStates.get(800), 1, 'The brass rule is fully drawn in its reading region');
+equal(ruleDOMStates.get(5000), 0, 'Leaving the section reverses the decorative rule');
+for (const y of [...lineDOMPositions].reverse()) {
+    lineFixture.scroll(y);
+    equal(lineState(lineFixture.lineHeading), lineDOMStates.get(y), 'Actual heading lines return to precisely the same state on the way back');
+    equal(Number(lineFixture.eyebrow.style['--sm-rule-progress']), ruleDOMStates.get(y), 'The brass rule reverses from position without a time-based replay');
+}
+equal(lineFixture.geometryReads, lineGeometryReads, 'Line stagger, inner zoom and brass rules add no per-scroll geometry reads');
+equal(lineFixture.lineHeading.children, originalLines, 'Motion preserves the original authored line nodes and their order');
+equal(lineFixture.lineHeading.querySelector('em'), originalEmphasis, 'Motion preserves inline emphasis rather than rebuilding heading HTML');
+equal(originalEmphasis.textContent, 'It should give you room to feel.');
+equal(originalLines.map(line => line.textContent), ['A home should give you', 'more than a place to live.', 'It should give you room to feel.'], 'The authored editorial text remains unchanged');
+equal(lineFixture.lineHeading.id, 'line-heading');
+equal(lineFixture.lineHeading.getAttribute('aria-describedby'), 'line-caption', 'Heading accessibility relationships survive enhancement');
+lineFixture.scroll(5000);
+const settledLineWrites = originalLines.map(line => line.styleWrites.length);
+const settledRuleWrites = lineFixture.eyebrow.styleWrites.length;
+lineFixture.scroll(5100); lineFixture.scroll(5200); lineFixture.trigger('scroll'); lineFixture.flush();
+equal(originalLines.map(line => line.styleWrites.length), settledLineWrites, 'Distant heading lines settle once without repeated writes');
+equal(lineFixture.eyebrow.styleWrites.length, settledRuleWrites, 'Distant brass rules settle once without repeated writes');
+lineFixture.scroll(550);
+lineFixture.document.activeElement = lineFixture.sections[2]; lineFixture.documentEvent('focusin'); lineFixture.flush();
+equal(lineState(lineFixture.lineHeading), lineDOMStates.get(550), 'Chapter focus on an ancestor does not freeze staggered heading lines');
+originalEmphasis.focus(); lineFixture.documentEvent('focusin'); lineFixture.flush();
+equal(lineState(lineFixture.lineHeading), [{ opacity: 1, y: 0 }, { opacity: 1, y: 0 }, { opacity: 1, y: 0 }], 'A focused heading descendant restores every line to a readable position');
+lineFixture.document.activeElement = lineFixture.document.body; lineFixture.documentEvent('focusout'); lineFixture.flush(); lineFixture.flush();
+equal(lineState(lineFixture.lineHeading), lineDOMStates.get(550), 'Blur restores the position-derived heading stagger');
+const refreshedLineState = lineState(lineFixture.lineHeading);
+lineFixture.trigger('lioravenn:layout-change'); lineFixture.flush();
+equal(lineState(lineFixture.lineHeading), refreshedLineState, 'Measuring while lines are translated cannot drift their shared heading bounds');
+lineFixture.lineHeading.bounds.top += 100; lineFixture.trigger('lioravenn:layout-change'); lineFixture.flush();
+equal(lineState(lineFixture.lineHeading), expectedLines(lineFixture, lineFixture.lineHeading), 'Real layout changes refresh the line group position');
+lineFixture.lineHeading.bounds.top -= 100; lineFixture.main.emit('load'); lineFixture.flush();
+equal(lineState(lineFixture.lineHeading), refreshedLineState, 'Later asset loads preserve the authored line offsets');
+for (const protectedHeading of lineFixture.excludedLineHeadings) {
+    equal(protectedHeading.classList.contains('sm-heading-reveal'), false, 'Form, tool, preview, dialog and explicit opt-out headings remain immediately usable');
+    equal(protectedHeading.querySelectorAll('.sm-heading-line').every(line => line.styleWrites.length === 0), true, 'Excluded line spans receive no hidden opacity or transform variables');
+}
+equal(lineFixture.excludedEyebrow.classList.contains('sm-accent'), false, 'Form labels do not acquire decorative scroll rules');
+equal(lineFixture.heroEyebrow.classList.contains('sm-accent'), false, 'The hero copy is not given a second nested reveal');
+lineFixture.preview.innerHTML = '<h2><span class="sm-heading-line">New preview heading</span></h2>';
+lineFixture.trigger('lioravenn:layout-change'); lineFixture.flush();
+equal(lineFixture.preview.querySelector('.sm-heading-line').styleWrites.length, 0, 'Rerendered brochure line spans are never registered');
+
+const zoomFixture = fixture({ lineHeadings: true });
+const zoomImages = zoomFixture.main.querySelectorAll('.sm-visual-layer').map(layer => layer.querySelector('img'));
+equal(zoomImages.length, 2, 'Only the two existing editorial still-image frames receive inner zoom');
+equal(zoomImages[1].style['--sm-image-scale'], '1.065', 'A distant image initializes to its bounded zoom baseline');
+const distantZoomWrites = zoomImages[1].styleWrites.length;
+const zoomStates = new Map();
+for (const y of [0, 400, 775, 1200, 1450, 2000]) {
+    zoomFixture.scroll(y);
+    const scale = Number(zoomFixture.welcomeImage.style['--sm-image-scale']);
+    equal(scale, imageScale(y, 900, 1000, 450), 'Actual image zoom follows the unchanged frame geometry');
+    zoomStates.set(y, scale);
+}
+equal(zoomImages[1].styleWrites.length, distantZoomWrites, 'Unvisited distant images do not receive repeated baseline scale writes');
+for (const y of [2000, 1450, 1200, 775, 400, 0]) {
+    zoomFixture.scroll(y);
+    equal(Number(zoomFixture.welcomeImage.style['--sm-image-scale']), zoomStates.get(y), 'The inner image zoom reverses exactly');
+}
+equal(zoomFixture.cardImage.querySelector('img').style['--sm-image-scale'], undefined, 'Card hover images do not inherit the editorial zoom');
+equal(zoomFixture.video.style['--sm-image-scale'], undefined, 'Ambient videos are not scaled by the still-image controller');
+zoomFixture.scroll(400);
+const originalFrame = zoomFixture.welcomeImage.parentNode.parentNode;
+zoomFixture.document.activeElement = originalFrame.parentNode; zoomFixture.documentEvent('focusin'); zoomFixture.flush();
+equal(Number(zoomFixture.welcomeImage.style['--sm-image-scale']), zoomStates.get(400), 'Focus on a surrounding section does not freeze an image frame');
+zoomFixture.welcomeImage.focus(); zoomFixture.documentEvent('focusin'); zoomFixture.flush();
+equal(zoomFixture.welcomeImage.style['--sm-image-scale'], '1', 'Actual frame descendant focus restores the unzoomed image');
+zoomFixture.document.activeElement = zoomFixture.document.body; zoomFixture.documentEvent('focusout'); zoomFixture.flush(); zoomFixture.flush();
+equal(Number(zoomFixture.welcomeImage.style['--sm-image-scale']), zoomStates.get(400));
+
+for (const options of [{ narrow: true }, { coarse: true }, { cores: 4 }, { memory: 4 }]) {
+    const limitedLines = fixture({ ...options, lineHeadings: true });
+    limitedLines.scroll(550);
+    equal(lineState(limitedLines.lineHeading), expectedLines(limitedLines, limitedLines.lineHeading), 'Lightweight line stagger is retained on limited devices');
+    equal(Number(limitedLines.welcomeImage.style['--sm-image-scale']), imageScale(550, 900, 1000, 450), 'Gentle inner zoom is independent of the large-image parallax guard');
+    equal(limitedLines.welcomeImage.parentNode.style['--sm-image-y'], '0px', 'Limited devices retain a still image layer while its inner crop changes');
+    const heroState = heroMotion(550, 96, 660, 96);
+    equal(limitedLines.heroCopy.style['--sm-hero-y'], `${heroState.y}px`, 'Limited-device hero motion remains enabled beside the new effects');
+    const limitedReads = limitedLines.geometryReads;
+    limitedLines.scroll(650); limitedLines.scroll(550);
+    equal(limitedLines.geometryReads, limitedReads, 'Limited-device animation still uses cached geometry');
+}
+for (const preference of ['off', 'saveData', 'reduced']) {
+    const pausedLines = fixture({ lineHeadings: true, motionMode: preference === 'reduced' ? 'auto' : 'on' });
+    pausedLines.scroll(550);
+    const beforePauseLines = lineState(pausedLines.lineHeading);
+    if (preference === 'off') pausedLines.setMotion('off');
+    else if (preference === 'saveData') { pausedLines.connection.change(true); pausedLines.flush(); }
+    else { pausedLines.reduce.change(true); pausedLines.flush(); }
+    equal(lineState(pausedLines.lineHeading), [{ opacity: 1, y: 0 }, { opacity: 1, y: 0 }, { opacity: 1, y: 0 }], 'Disabled motion restores every heading line');
+    equal(pausedLines.eyebrow.style['--sm-rule-progress'], '1', 'Disabled motion keeps the decorative rule fully drawn');
+    equal(pausedLines.welcomeImage.style['--sm-image-scale'], '1', 'Disabled motion restores the natural image scale');
+    const pausedWrites = pausedLines.lineHeading.originalLines.map(line => line.styleWrites.length);
+    pausedLines.scroll(650); pausedLines.scroll(550);
+    equal(pausedLines.lineHeading.originalLines.map(line => line.styleWrites.length), pausedWrites, 'Disabled line effects do not write again during scrolling');
+    if (preference === 'off') pausedLines.setMotion('on');
+    else if (preference === 'saveData') { pausedLines.connection.change(false); pausedLines.flush(); }
+    else { pausedLines.reduce.change(false); pausedLines.flush(); }
+    equal(lineState(pausedLines.lineHeading), beforePauseLines, 'Restoring motion recomputes the current stagger without an entry event');
+}
+const transformedLines = fixture({ lineHeadings: true, transformedCopy: true }); transformedLines.scroll(550);
+equal(transformedLines.lineHeading.classList.contains('sm-heading-reveal'), false, 'Existing custom heading transforms retain their fade-only fallback');
+equal(transformedLines.lineHeading.originalLines.every(line => line.styleWrites.length === 0), true, 'Existing transforms do not gain competing nested translations');
+equal(state(transformedLines.lineHeading).opacity, expected(transformedLines, transformedLines.lineHeading).opacity);
+const nonHomeLines = fixture({ home: false, lineHeadings: true }); nonHomeLines.scroll(200);
+equal(lineState(nonHomeLines.lineHeading), expectedLines(nonHomeLines, nonHomeLines.lineHeading), 'Static editorial line headings are enhanced on inner pages');
+equal(nonHomeLines.main.querySelectorAll('.sm-visual-frame').length, 0, 'Inner pages do not gain homepage image wrappers');
+const noLineEnhancement = fixture({ raf: false, lineHeadings: true });
+equal(noLineEnhancement.lineHeading.originalLines.every(line => line.styleWrites.length === 0), true, 'Without enhancement authored line spans remain visible');
+
 assert(css.includes('opacity: var(--sm-opacity,1)')); checks++;
 const textRule = css.match(/\.sm-enhanced\s+\.sm-reveal\s*\{([^}]+)\}/)?.[1] || '';
 const imageRule = css.match(/\.sm-enhanced\s+\.sm-image-reveal\s*\{([^}]+)\}/)?.[1] || '';
@@ -494,6 +697,16 @@ const imageProperties = imageRule.match(/transition-property:\s*([^;]+);/)?.[1].
 const imageDurations = imageRule.match(/transition-duration:\s*([^;]+);/)?.[1].split(',').map(value => parseFloat(value)) || [];
 equal(imageDurations[imageProperties.indexOf('opacity')], .24, 'Image opacity uses the approved short easing duration');
 equal(imageDurations[imageProperties.indexOf('transform')], .7, 'Existing image hover transform easing remains available');
+const lineRule = css.match(/\.sm-enhanced\s+\.sm-heading-reveal>\.sm-heading-line\s*\{([^}]+)\}/)?.[1] || '';
+equal(lineRule.match(/transition:\s*([^;]+);/)?.[1].trim(), 'opacity .22s ease-out', 'Line opacity uses short easing without delayed transform animations');
+assert(lineRule.includes('opacity: var(--sm-line-opacity,1)') && lineRule.includes('translateY(var(--sm-line-y,0px))'), 'Line motion is applied to the authored spans'); checks++;
+const brassRule = css.match(/\.sm-accent::before\s*\{([^}]+)\}/)?.[1] || '';
+assert(brassRule.includes('position: absolute') && brassRule.includes("content: ''"), 'The brass rule is decorative and cannot change heading layout'); checks++;
+assert(brassRule.includes('scaleX(var(--sm-rule-progress,1))') && brassRule.includes('transform-origin: left center'), 'The brass rule draws from its starting edge using bounded scroll progress'); checks++;
+const innerImageRule = css.match(/\.sm-visual-layer>img\s*\{([^}]+)\}/)?.[1] || '';
+assert(innerImageRule.includes('scale(var(--sm-image-scale,1))') && innerImageRule.includes('object-fit: cover'), 'The still image zoom is composed on the inner image rather than its parallax parent'); checks++;
+assert(/\.sm-reduced\s+\.sm-heading-line/.test(css) && /html\[data-motion-preference="off"\]\s+\.sm-heading-line/.test(css), 'Live Off and reduced-motion styles restore authored heading lines'); checks++;
+assert(/@media print\s*\{[^}]*\.sm-heading-line[^}]*transform:\s*none!important/.test(css), 'Printed headings and images are untransformed and fully visible'); checks++;
 assert(!/\.sm-static-effects\s+\.sm-hero-copy\s*\{/.test(css), 'Image-parallax capability guards must not hide lightweight hero movement'); checks++;
 assert(css.includes('translateY(var(--sm-y,0px))')); checks++;
 assert(!css.includes('sm-visible') && !css.includes('transition-delay'), 'Scroll-position effects do not depend on one-shot visibility or time-based transitions'); checks++;

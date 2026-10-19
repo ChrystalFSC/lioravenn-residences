@@ -95,7 +95,7 @@ Home selections travel through page URLs. Saved favourites and valid calculator 
 The original portal-shaped **L** monogram, Cormorant Garamond headings, and Manrope body text create a consistent identity across the website and exported brochure.
 
 - **Responsive layouts:** the same tools adapt to desktop and phone screens.
-- **Considered motion:** motion is enabled automatically, with section transitions that reverse as you scroll back up, plus data-saving support.
+- **Considered motion:** staggered heading lines, slow image zooms and brass line reveals follow your scroll in both directions, with motion enabled automatically and data-saving support.
 - **Keyboard access:** skip links, focus handling, accessible dialogs, and keyboard-operated room tabs.
 - **Sharper imagery:** high-quality WebP assets with preserved originals and [documented AI-restoration provenance](img/enhanced/README.md).
 

@@ -43,8 +43,32 @@
             y: Math.round((exit - entry) * clamp(amplitude, 0, 56) * 100) / 100 || 0
         };
     }
+    function headingLineMotion(scrollY, viewportHeight, top, height, headerHeight = 0, index = 0, count = 1) {
+        if (![scrollY, viewportHeight, top, height].every(Number.isFinite) || viewportHeight <= 0 || height <= 0) return { opacity: 1, y: 0 };
+        const inset = clamp(headerHeight, 0, viewportHeight * .35);
+        const band = clamp((viewportHeight - inset) * .42, 180, 420);
+        const entry = clamp((scrollY + viewportHeight - top) / band);
+        const exit = clamp((top + height - scrollY - inset) / band);
+        const last = Math.max(0, Number.isFinite(count) ? count - 1 : 0);
+        const order = clamp(index, 0, last);
+        const stagger = (phase, delay) => {
+            const value = clamp((phase - delay) / (1 - delay));
+            return value * value * (3 - 2 * value);
+        };
+        const entering = stagger(entry, Math.min(.3, order * .14));
+        const leaving = stagger(exit, Math.min(.3, (last - order) * .14));
+        return {
+            opacity: Math.round((.08 + .92 * Math.min(entering, leaving)) * 1000) / 1000,
+            y: Math.round((leaving - entering) * 34 * 100) / 100 || 0
+        };
+    }
+    function imageScale(scrollY, viewportHeight, top, height) {
+        if (![scrollY, viewportHeight, top, height].every(Number.isFinite) || viewportHeight <= 0 || height <= 0) return 1;
+        const progress = clamp((scrollY + viewportHeight - top) / (viewportHeight + height));
+        return Math.round((1.065 - .065 * progress) * 10000) / 10000;
+    }
     const overlapsViewport = (top, height, scrollY, viewportHeight) => height > 0 && top + height > scrollY && top < scrollY + viewportHeight;
-    if (typeof module === 'object' && module.exports) module.exports = { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport, edgeMotion };
+    if (typeof module === 'object' && module.exports) module.exports = { clamp, scrollProgress, activeChapterIndex, heroMotion, visualOffset, allowsContinuousMotion, overlapsViewport, edgeMotion, headingLineMotion, imageScale };
     if (typeof document === 'undefined' || typeof window === 'undefined') return;
     const main = document.querySelector('main');
     if (!main || typeof window.requestAnimationFrame !== 'function') return;
@@ -161,7 +185,7 @@
             image.replaceWith(frame);
             layer.append(image);
             frame.append(layer);
-            visualLayers.push({ frame, layer, top: 0, height: 0, lastOffset: null });
+            visualLayers.push({ frame, layer, image, top: 0, height: 0, lastOffset: null, lastScale: null });
         });
         heroEffect?.classList.add('sm-hero-copy');
     }
@@ -174,10 +198,13 @@
         const bounds = element.getBoundingClientRect();
         if (!bounds.width || !bounds.height) return;
         const shift = !image && (!window.getComputedStyle || window.getComputedStyle(element).transform === 'none');
-        const record = { element, image, shift, top: 0, height: 0, focused: false, edgeSide: null, lastOpacity: null, lastY: null };
+        const lines = !image && shift ? Array.from(element.querySelectorAll('.sm-heading-line'), line => ({ element: line, lastOpacity: null, lastY: null })) : [];
+        const rule = !image && element.classList.contains('eyebrow');
+        const record = { element, image, shift: shift && !lines.length, lines, rule, top: 0, height: 0, focused: false, edgeSide: null, lastOpacity: null, lastY: null, lastRule: null };
         records.push(record);
-        element.classList.add(image ? 'sm-image-reveal' : 'sm-reveal');
-        if (shift) element.classList.add('sm-shift-reveal');
+        element.classList.add(image ? 'sm-image-reveal' : lines.length ? 'sm-heading-reveal' : 'sm-reveal');
+        if (record.shift) element.classList.add('sm-shift-reveal');
+        if (rule) element.classList.add('sm-accent');
     }
     main.querySelectorAll('.facts-inner > div,.life-values > article').forEach(element => addRecord(element));
     main.querySelectorAll('h1,h2,h3,p').forEach(element => addRecord(element));
@@ -196,6 +223,27 @@
             record.element.style.setProperty('--sm-y', `${y}px`);
             record.lastY = y;
         }
+        if (record.rule) {
+            const value = Math.round(clamp((opacity - .08) / .92) * 1000) / 1000;
+            if (value !== record.lastRule) {
+                record.element.style.setProperty('--sm-rule-progress', String(value));
+                record.lastRule = value;
+            }
+        }
+    }
+    function writeLine(line, opacity, y) {
+        if (line.lastOpacity !== opacity) {
+            line.element.style.setProperty('--sm-line-opacity', String(opacity));
+            line.lastOpacity = opacity;
+        }
+        if (line.lastY !== y) {
+            line.element.style.setProperty('--sm-line-y', `${y}px`);
+            line.lastY = y;
+        }
+    }
+    function resetRecord(record) {
+        writeRecord(record, 1, 0);
+        record.lines.forEach(line => writeLine(line, 1, 0));
     }
     function configureMotion() {
         const preference = window.LioravennMotion;
@@ -210,8 +258,9 @@
         root.classList.toggle('sm-static-effects', !continuousEnabled);
         root.classList.toggle('sm-enhanced', motionEnabled);
         if (!motionEnabled) {
-            records.forEach(record => { writeRecord(record, 1, 0); record.edgeSide = null; });
+            records.forEach(record => { resetRecord(record); record.edgeSide = null; });
             resetHeroEffect();
+            visualLayers.forEach(visual => writeScale(visual, 1));
         }
         if (!continuousEnabled) resetImageEffects();
         invalidate();
@@ -239,7 +288,7 @@
             const bounds = hero.getBoundingClientRect();
             heroBounds = { top: bounds.top + y, height: bounds.height };
         }
-        if (continuousEnabled) visualLayers.forEach(visual => {
+        if (motionEnabled) visualLayers.forEach(visual => {
             const bounds = visual.frame.getBoundingClientRect();
             visual.top = bounds.top + y;
             visual.height = bounds.height;
@@ -271,7 +320,7 @@
             }
         }
         if (motionEnabled) records.forEach(record => {
-            if (record.focused) { writeRecord(record, 1, 0); record.edgeSide = null; return; }
+            if (record.focused) { resetRecord(record); record.edgeSide = null; return; }
             const near = overlapsViewport(record.top, record.height, y - 160, viewportHeight + 320);
             const edgeSide = near ? 0 : record.top >= y + viewportHeight ? 1 : -1;
             // Initialize distant content and settle it once after it exits.
@@ -279,6 +328,13 @@
             // offscreen records need no style writes on subsequent frames.
             if (!near && record.edgeSide === edgeSide) return;
             record.edgeSide = edgeSide;
+            if (record.lines.length) {
+                record.lines.forEach((line, index) => {
+                    const state = headingLineMotion(y, viewportHeight, record.top, record.height, headerHeight, index, record.lines.length);
+                    writeLine(line, state.opacity, state.y);
+                });
+                return;
+            }
             const state = edgeMotion(y, viewportHeight, record.top, record.height, headerHeight, record.image ? .24 : .08);
             writeRecord(record, state.opacity, state.y);
         });
@@ -295,6 +351,9 @@
                 lastHeroOpacity = state.opacity;
             }
         }
+        if (motionEnabled) visualLayers.forEach(visual => {
+            writeScale(visual, hasFocus(visual.frame) ? 1 : imageScale(y, viewportHeight, visual.top, visual.height));
+        });
         if (!continuousEnabled) return;
         visualLayers.forEach(visual => {
             if (!overlapsViewport(visual.top, visual.height, y, viewportHeight)) return;
@@ -304,6 +363,12 @@
                 visual.lastOffset = offset;
             }
         });
+    }
+    function writeScale(visual, scale) {
+        if (scale !== visual.lastScale) {
+            visual.image.style.setProperty('--sm-image-scale', String(scale));
+            visual.lastScale = scale;
+        }
     }
     function resetHeroEffect() {
         if (heroEffect) {
@@ -350,7 +415,7 @@
         records.forEach(record => {
             record.focused = !!hasFocus(record.element);
             record.element.classList.toggle('sm-focus-held', record.focused);
-            if (record.focused) writeRecord(record, 1, 0);
+            if (record.focused) resetRecord(record);
         });
         schedule();
     }
