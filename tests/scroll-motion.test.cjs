@@ -22,8 +22,8 @@ equal(activeChapterIndex([96, 900, 1700], 1500, 900, 5000), 2);
 equal(activeChapterIndex([96, 900, 1700], 700, 900, 5000), 1);
 equal(activeChapterIndex([96, 900, 1700], 4999, 900, 5000), 2);
 equal(heroMotion(0, 96, 600, 96), { y: 0, opacity: 1 });
-equal(heroMotion(300, 96, 600, 96), { y: 21, opacity: .83 });
-equal(heroMotion(2000, 96, 600, 96), { y: 42, opacity: .66 });
+equal(heroMotion(300, 96, 600, 96), { y: 32, opacity: .79 });
+equal(heroMotion(2000, 96, 600, 96), { y: 64, opacity: .58 });
 equal(heroMotion(2000, 96, 600, 96, true), { y: 10, opacity: .9 });
 equal(heroMotion(100, 0, 0, 0), { y: 0, opacity: 1 });
 equal(visualOffset(500, 1000, 750, 500), 0);
@@ -37,14 +37,17 @@ equal(allowsContinuousMotion(), true, 'Unavailable device hints alone do not cla
 equal(overlapsViewport(100, 200, 0, 900), true);
 equal(overlapsViewport(1000, 200, 0, 900), false);
 equal(overlapsViewport(0, 200, 201, 900), false);
-equal(edgeMotion(0, 1000, 1000, 100), { opacity: .38, y: 24 });
-equal(edgeMotion(0, 1000, 890, 100), { opacity: .69, y: 12 }, 'Bottom-edge progress has a stable partial state');
+equal(edgeMotion(0, 1000, 1000, 100), { opacity: .08, y: 48 });
+equal(edgeMotion(0, 1000, 790, 100), { opacity: .54, y: 24 }, 'The broader bottom band has a visible halfway state');
 equal(edgeMotion(0, 1000, 400, 100), { opacity: 1, y: 0 }, 'The central reading region is fully visible');
-equal(edgeMotion(0, 1000, 10, 100), { opacity: .69, y: -12 }, 'Top-edge progress reverses the same restrained shift');
-equal(edgeMotion(0, 1000, -100, 100), { opacity: .38, y: -24 });
+equal(edgeMotion(0, 1000, 110, 100), { opacity: .54, y: -24 }, 'The top band mirrors the bottom band at the same progress');
+equal(edgeMotion(0, 1000, -100, 100), { opacity: .08, y: -48 });
 equal(edgeMotion(0, 1000, -500, 1600), { opacity: 1, y: 0 }, 'Long content remains readable while its middle fills the viewport');
-equal(edgeMotion(0, 1000, 1000, 100, 0, .62, 0), { opacity: .62, y: 0 }, 'Images can retain a higher visible floor without translation');
-equal(edgeMotion(0, 1000, 1000, 100, 0, .38, 100).y, 28, 'Translations stay within the restrained maximum');
+equal(edgeMotion(0, 1000, 1000, 100, 0, .24, 0), { opacity: .24, y: 0 }, 'Images retain their own higher opacity floor without translation');
+equal(edgeMotion(0, 1000, 1000, 100, 0, .08, 100).y, 56, 'Explicit translations stay within the approved maximum');
+equal(edgeMotion(0, 300, 210, 100), { opacity: .54, y: 24 }, 'Short viewports retain a 180px minimum transition band');
+equal(edgeMotion(0, 1800, 1590, 100), { opacity: .54, y: 24 }, 'Tall viewports cap the transition band at 420px');
+equal(edgeMotion(0, 1000, 811, 100, 100), { opacity: .54, y: 24 }, 'The transition band accounts for the fixed-header inset');
 equal(edgeMotion(0, 0, 100, 100), { opacity: 1, y: 0 });
 equal(edgeMotion(0, 1000, 100, 0), { opacity: 1, y: 0 });
 equal(edgeMotion(NaN, 1000, 100, 100), { opacity: 1, y: 0 }, 'Invalid geometry fails open');
@@ -53,7 +56,7 @@ const mathStates = mathPositions.map(y => edgeMotion(y, 1000, 1500, 100));
 [...mathPositions].reverse().forEach((y, index) => equal(edgeMotion(y, 1000, 1500, 100), mathStates.at(-1 - index), 'Scroll direction does not change a position-derived state'));
 for (let y = 0; y <= 2000; y += 50) {
     const state = edgeMotion(y, 600, 1000, 350, 80);
-    assert(state.opacity >= .38 && state.opacity <= 1 && Math.abs(state.y) <= 24, 'Small mobile viewports keep content partially visible at every edge'); checks++;
+    assert(state.opacity >= .08 && state.opacity <= 1 && Math.abs(state.y) <= 48, 'Small mobile viewports retain the full reversible transition without exceeding its bounds'); checks++;
 }
 
 class Element {
@@ -245,7 +248,7 @@ function state(node) {
     return { opacity: Number(node.style['--sm-opacity'] ?? 1), y: parseFloat(node.style['--sm-y']) || 0 };
 }
 function expected(engine, node, image = false) {
-    return edgeMotion(engine.window.scrollY, engine.window.innerHeight, node.bounds.top, node.bounds.height, 96, image ? .62 : .38);
+    return edgeMotion(engine.window.scrollY, engine.window.innerHeight, node.bounds.top, node.bounds.height, 96, image ? .24 : .08);
 }
 const f = fixture();
 equal(f.main.querySelectorAll('.sm-visual-frame').length, 2, 'Only two homepage still images receive parallax wrappers');
@@ -279,9 +282,9 @@ for (const y of positions) {
     equal(current, expected(f, f.heading), 'Actual DOM styles follow cached document geometry on the way down');
     descending.set(y, current);
 }
-equal(descending.get(150), { opacity: .38, y: 24 }, 'Entering copy is partially visible with a restrained downward offset');
+equal(descending.get(150), { opacity: .08, y: 48 }, 'Entering copy starts at a clearly distinguishable edge state');
 equal(descending.get(500), { opacity: 1, y: 0 }, 'Copy is fully opaque in the reading area');
-equal(descending.get(1150), { opacity: .38, y: -24 }, 'Exiting copy has the mirrored top-edge state');
+equal(descending.get(1150), { opacity: .08, y: -48 }, 'Exiting copy has the mirrored top-edge state');
 for (const y of [...positions].reverse()) {
     f.scroll(y);
     equal(state(f.heading), descending.get(y), 'Upward scrolling returns the actual DOM styles to exactly the same position-derived state');
@@ -291,6 +294,48 @@ equal(state(f.heading), descending.get(220), 'A large jump back into view comput
 f.scroll(500); f.scroll(0); f.scroll(500);
 equal(state(f.heading), { opacity: 1, y: 0 }, 'Repeated visits do not accumulate translations or stale fades');
 equal(f.heading.textContent, 'Space for the life you want to live.', 'Motion never rewrites editorial text');
+
+const edgeLifecycle = fixture();
+equal(state(edgeLifecycle.heading), { opacity: .08, y: 48 }, 'Copy starts at its edge baseline before its first viewport visit');
+equal(state(edgeLifecycle.cardImage).opacity, .24, 'Offscreen imagery receives its distinct baseline immediately');
+equal(edgeLifecycle.cardImage.style['--sm-y'], undefined, 'Image fades never overwrite the card image hover transform');
+edgeLifecycle.scroll(500);
+equal(state(edgeLifecycle.heading), { opacity: 1, y: 0 });
+const beforeExitWrites = edgeLifecycle.heading.styleWrites.length;
+const beforeExitReads = edgeLifecycle.geometryReads;
+edgeLifecycle.scroll(5000);
+equal(state(edgeLifecycle.heading), { opacity: .08, y: -48 }, 'A page-sized jump settles formerly readable copy on the correct exit edge');
+equal(edgeLifecycle.heading.styleWrites.length > beforeExitWrites, true);
+const afterExitWrites = edgeLifecycle.heading.styleWrites.length;
+edgeLifecycle.scroll(5100); edgeLifecycle.scroll(5200); edgeLifecycle.trigger('scroll'); edgeLifecycle.flush();
+equal(edgeLifecycle.heading.styleWrites.length, afterExitWrites, 'Distant exit states are settled once, without repeated idle writes');
+equal(edgeLifecycle.geometryReads, beforeExitReads, 'Large jumps and distant frames reuse cached geometry');
+edgeLifecycle.scroll(0);
+equal(state(edgeLifecycle.heading), { opacity: .08, y: 48 }, 'Jumping from fully above to fully below updates the edge even without passing through near range');
+const beforeIdleEntry = edgeLifecycle.heading.styleWrites.length;
+edgeLifecycle.scroll(0); edgeLifecycle.trigger('scroll'); edgeLifecycle.flush();
+equal(edgeLifecycle.heading.styleWrites.length, beforeIdleEntry);
+const bypassed = fixture();
+bypassed.scroll(5000);
+equal(state(bypassed.heading), { opacity: .08, y: -48 }, 'A first jump that skips the whole section still applies its exit baseline');
+
+const chapterFocus = fixture();
+chapterFocus.scroll(220);
+chapterFocus.document.activeElement = chapterFocus.sections[2];
+chapterFocus.documentEvent('focusin'); chapterFocus.flush();
+equal(state(chapterFocus.heading), expected(chapterFocus, chapterFocus.heading), 'Native chapter-anchor focus on a section must not freeze all of its headings');
+equal(chapterFocus.heading.classList.contains('sm-focus-held'), false);
+chapterFocus.document.activeElement = chapterFocus.sections[0];
+chapterFocus.documentEvent('focusin'); chapterFocus.flush(); chapterFocus.scroll(330);
+equal(chapterFocus.heroCopy.style['--sm-hero-y'], '32px', 'Focusing the hero section does not suppress motion of its descendants');
+equal(chapterFocus.heroCopy.style['--sm-hero-opacity'], '0.79');
+const focusChild = new Element('span', chapterFocus, { tabindex: '0' });
+chapterFocus.heading.append(focusChild); focusChild.focus();
+chapterFocus.documentEvent('focusin'); chapterFocus.flush();
+equal(state(chapterFocus.heading), { opacity: 1, y: 0 }, 'A truly focused descendant still keeps its editorial container readable');
+chapterFocus.document.activeElement = chapterFocus.document.body;
+chapterFocus.documentEvent('focusout'); chapterFocus.flush(); chapterFocus.flush();
+equal(state(chapterFocus.heading), expected(chapterFocus, chapterFocus.heading), 'Blur returns focused content to its current position-derived state');
 
 const beforeLayoutState = state(f.heading);
 f.trigger('lioravenn:layout-change'); f.flush();
@@ -312,8 +357,8 @@ f.scroll(1100);
 equal(state(f.cardImage).opacity < 1, true, 'Card imagery may fade partially near an edge');
 f.document.activeElement = f.card;
 f.documentEvent('focusin'); f.flush();
-equal(state(f.cardImage).opacity, 1, 'Keyboard focus forces card imagery fully visible');
-equal(f.cardImage.classList.contains('sm-focus-held'), true);
+equal(state(f.cardImage).opacity, expected(f, f.cardImage, true).opacity, 'Focusing an ancestor link does not lock its image at full opacity');
+equal(f.cardImage.classList.contains('sm-focus-held'), false);
 f.document.activeElement = f.heading;
 f.documentEvent('focusin'); f.flush();
 equal(state(f.heading), { opacity: 1, y: 0 }, 'Focused editorial content stays fully visible at the viewport edge');
@@ -342,8 +387,11 @@ equal(desktop.geometryReads, frameReads, 'Ordinary scroll does not remeasure geo
 desktop.scroll(1500);
 const offscreenHeroWrites = desktop.heroCopy.styleWrites.length;
 const distantHeading = desktop.sections.at(-1).querySelector('h2');
-equal(distantHeading.styleWrites.length, 0, 'Distant editorial nodes receive no initial or per-scroll writes');
+equal(state(distantHeading), { opacity: .08, y: 48 }, 'Distant editorial content receives its correct baseline immediately');
+const distantWrites = distantHeading.styleWrites.length;
+assert(distantWrites > 0, 'Offscreen content must not start at an uninitialised full-opacity state'); checks++;
 desktop.scroll(1600);
+equal(distantHeading.styleWrites.length, distantWrites, 'Distant content on the same edge receives no repeated style writes');
 equal(desktop.heroCopy.styleWrites.length, offscreenHeroWrites, 'Offscreen hero is not updated');
 const farLayer = desktop.main.querySelectorAll('.sm-visual-layer')[1];
 equal(farLayer.styleWrites.length, 0, 'Offscreen image parallax layers receive no scroll transforms');
@@ -368,8 +416,9 @@ for (const options of [{ narrow: true }, { coarse: true }, { touchPoints: 1 }, {
     const limited = fixture(options);
     limited.scroll(220);
     equal(limited.document.documentElement.classList.contains('sm-static-effects'), true, 'Limited devices keep only the extra parallax disabled');
-    equal(limited.heroCopy.style['--sm-hero-y'], '0px');
-    equal(limited.heroCopy.style['--sm-hero-opacity'], '1');
+    const heroState = heroMotion(220, 96, 660, 96);
+    equal(limited.heroCopy.style['--sm-hero-y'], `${heroState.y}px`, 'Lightweight hero motion remains enabled when image parallax is restricted');
+    equal(limited.heroCopy.style['--sm-hero-opacity'], String(heroState.opacity));
     equal(limited.document.documentElement.classList.contains('sm-enhanced'), true, 'Limited devices retain reversible editorial motion');
     const firstState = state(limited.heading);
     limited.scroll(500); limited.scroll(220);
@@ -423,6 +472,7 @@ const disabledContract = fixture({ motionMode: 'off' });
 equal(state(disabledContract.heading), { opacity: 1, y: 0 }, 'A disabled shared contract leaves all content visible');
 disabledContract.setMotion('on'); disabledContract.scroll(220);
 equal(state(disabledContract.heading), expected(disabledContract, disabledContract.heading), 'The shared event recomputes motion without a reload');
+equal(state(disabledContract.sections.at(-1).querySelector('h2')), { opacity: .08, y: 48 }, 'Re-enabling motion initializes distant content as well as nearby content');
 const noIO = fixture({ io: false }); noIO.scroll(220);
 equal(state(noIO.heading), expected(noIO, noIO.heading), 'The renderer works when IntersectionObserver is unavailable');
 const noRO = fixture({ resizeObserver: false }); noRO.scroll(220);
@@ -437,7 +487,14 @@ equal(brochure.main.querySelectorAll('.sm-visual-frame').length, 0);
 equal(brochure.previewHeading.classList.contains('sm-reveal'), false);
 
 assert(css.includes('opacity: var(--sm-opacity,1)')); checks++;
-assert(css.includes('transition-property: transform'), 'Image opacity follows scroll directly while existing hover transforms can retain their transition'); checks++;
+const textRule = css.match(/\.sm-enhanced\s+\.sm-reveal\s*\{([^}]+)\}/)?.[1] || '';
+const imageRule = css.match(/\.sm-enhanced\s+\.sm-image-reveal\s*\{([^}]+)\}/)?.[1] || '';
+equal(textRule.match(/transition:\s*([^;]+);/)?.[1].trim(), 'opacity .2s ease-out', 'Text opacity is gently eased while position remains tied directly to scrolling');
+const imageProperties = imageRule.match(/transition-property:\s*([^;]+);/)?.[1].split(',').map(value => value.trim()) || [];
+const imageDurations = imageRule.match(/transition-duration:\s*([^;]+);/)?.[1].split(',').map(value => parseFloat(value)) || [];
+equal(imageDurations[imageProperties.indexOf('opacity')], .24, 'Image opacity uses the approved short easing duration');
+equal(imageDurations[imageProperties.indexOf('transform')], .7, 'Existing image hover transform easing remains available');
+assert(!/\.sm-static-effects\s+\.sm-hero-copy\s*\{/.test(css), 'Image-parallax capability guards must not hide lightweight hero movement'); checks++;
 assert(css.includes('translateY(var(--sm-y,0px))')); checks++;
 assert(!css.includes('sm-visible') && !css.includes('transition-delay'), 'Scroll-position effects do not depend on one-shot visibility or time-based transitions'); checks++;
 assert(css.includes('html:not([data-motion-preference="on"]) .sm-reveal')); checks++;

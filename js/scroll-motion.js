@@ -14,7 +14,7 @@
     }
     function heroMotion(scrollY, top, height, headerHeight, light = false) {
         const progress = height > 0 ? clamp((scrollY - top + headerHeight) / height) : 0;
-        return { y: Math.round(progress * (light ? 10 : 42) * 100) / 100, opacity: Math.round((1 - progress * (light ? .1 : .34)) * 1000) / 1000 };
+        return { y: Math.round(progress * (light ? 10 : 64) * 100) / 100, opacity: Math.round((1 - progress * (light ? .1 : .42)) * 1000) / 1000 };
     }
     function visualOffset(scrollY, viewportHeight, top, height, amplitude = 18) {
         const travel = (viewportHeight + height) / 2;
@@ -25,10 +25,10 @@
             !(Number.isFinite(cores) && cores > 0 && cores <= 4) &&
             !(Number.isFinite(memory) && memory > 0 && memory <= 4);
     }
-    function edgeMotion(scrollY, viewportHeight, top, height, headerHeight = 0, minimumOpacity = .38, amplitude = 24) {
+    function edgeMotion(scrollY, viewportHeight, top, height, headerHeight = 0, minimumOpacity = .08, amplitude = 48) {
         if (![scrollY, viewportHeight, top, height].every(Number.isFinite) || viewportHeight <= 0 || height <= 0) return { opacity: 1, y: 0 };
         const inset = clamp(headerHeight, 0, viewportHeight * .35);
-        const band = clamp((viewportHeight - inset) * .22, 96, 220);
+        const band = clamp((viewportHeight - inset) * .42, 180, 420);
         const relativeTop = top - scrollY;
         const entering = clamp((viewportHeight - relativeTop) / band);
         const leaving = clamp((relativeTop + height - inset) / band);
@@ -40,7 +40,7 @@
         // The same document position always produces the same state in either direction.
         return {
             opacity: Math.round((floor + (1 - floor) * Math.min(entry, exit)) * 1000) / 1000,
-            y: Math.round((exit - entry) * clamp(amplitude, 0, 28) * 100) / 100 || 0
+            y: Math.round((exit - entry) * clamp(amplitude, 0, 56) * 100) / 100 || 0
         };
     }
     const overlapsViewport = (top, height, scrollY, viewportHeight) => height > 0 && top + height > scrollY && top < scrollY + viewportHeight;
@@ -174,7 +174,7 @@
         const bounds = element.getBoundingClientRect();
         if (!bounds.width || !bounds.height) return;
         const shift = !image && (!window.getComputedStyle || window.getComputedStyle(element).transform === 'none');
-        const record = { element, image, shift, top: 0, height: 0, focused: false, lastOpacity: null, lastY: null };
+        const record = { element, image, shift, top: 0, height: 0, focused: false, edgeSide: null, lastOpacity: null, lastY: null };
         records.push(record);
         element.classList.add(image ? 'sm-image-reveal' : 'sm-reveal');
         if (shift) element.classList.add('sm-shift-reveal');
@@ -185,7 +185,7 @@
 
     function hasFocus(element) {
         const active = document.activeElement;
-        return active && active !== document.body && (element === active || element.contains(active) || active.contains(element));
+        return active && active !== document.body && (element === active || element.contains(active));
     }
     function writeRecord(record, opacity, y) {
         if (opacity !== record.lastOpacity) {
@@ -209,8 +209,11 @@
         root.classList.toggle('sm-reduced', !motionEnabled);
         root.classList.toggle('sm-static-effects', !continuousEnabled);
         root.classList.toggle('sm-enhanced', motionEnabled);
-        if (!motionEnabled) records.forEach(record => writeRecord(record, 1, 0));
-        if (!continuousEnabled) resetContinuousEffects();
+        if (!motionEnabled) {
+            records.forEach(record => { writeRecord(record, 1, 0); record.edgeSide = null; });
+            resetHeroEffect();
+        }
+        if (!continuousEnabled) resetImageEffects();
         invalidate();
     }
     function readPageSize() {
@@ -232,7 +235,7 @@
             record.top = bounds.top + y - appliedY;
             record.height = bounds.width > 0 ? bounds.height : 0;
         });
-        if (continuousEnabled && heroEffect) {
+        if (motionEnabled && heroEffect) {
             const bounds = hero.getBoundingClientRect();
             heroBounds = { top: bounds.top + y, height: bounds.height };
         }
@@ -268,15 +271,20 @@
             }
         }
         if (motionEnabled) records.forEach(record => {
-            if (record.focused) { writeRecord(record, 1, 0); return; }
-            // A generous near-viewport margin prepares entries before they
-            // appear, but distant elements receive no per-frame style writes.
-            if (!overlapsViewport(record.top, record.height, y - 160, viewportHeight + 320)) return;
-            const state = edgeMotion(y, viewportHeight, record.top, record.height, headerHeight, record.image ? .62 : .38);
+            if (record.focused) { writeRecord(record, 1, 0); record.edgeSide = null; return; }
+            const near = overlapsViewport(record.top, record.height, y - 160, viewportHeight + 320);
+            const edgeSide = near ? 0 : record.top >= y + viewportHeight ? 1 : -1;
+            // Initialize distant content and settle it once after it exits.
+            // This also handles a page-sized jump in either direction; idle
+            // offscreen records need no style writes on subsequent frames.
+            if (!near && record.edgeSide === edgeSide) return;
+            record.edgeSide = edgeSide;
+            const state = edgeMotion(y, viewportHeight, record.top, record.height, headerHeight, record.image ? .24 : .08);
             writeRecord(record, state.opacity, state.y);
         });
-        if (!continuousEnabled) return;
-        if (heroEffect && heroBounds && overlapsViewport(heroBounds.top, heroBounds.height, y, viewportHeight) && !hasFocus(heroEffect)) {
+        // Hero copy is a small composited layer, so it remains animated on
+        // narrow and lower-power devices. Only large image parallax is gated.
+        if (motionEnabled && heroEffect && heroBounds && overlapsViewport(heroBounds.top, heroBounds.height, y, viewportHeight) && !hasFocus(heroEffect)) {
             const state = heroMotion(y, heroBounds.top, heroBounds.height, headerHeight);
             if (state.y !== lastHeroY) {
                 heroEffect.style.setProperty('--sm-hero-y', `${state.y}px`);
@@ -287,6 +295,7 @@
                 lastHeroOpacity = state.opacity;
             }
         }
+        if (!continuousEnabled) return;
         visualLayers.forEach(visual => {
             if (!overlapsViewport(visual.top, visual.height, y, viewportHeight)) return;
             const offset = visualOffset(y, viewportHeight, visual.top, visual.height);
@@ -296,13 +305,15 @@
             }
         });
     }
-    function resetContinuousEffects() {
+    function resetHeroEffect() {
         if (heroEffect) {
             if (lastHeroY !== 0) heroEffect.style.setProperty('--sm-hero-y', '0px');
             if (lastHeroOpacity !== 1) heroEffect.style.setProperty('--sm-hero-opacity', '1');
             lastHeroY = 0;
             lastHeroOpacity = 1;
         }
+    }
+    function resetImageEffects() {
         visualLayers.forEach(visual => {
             if (visual.lastOffset !== 0) visual.layer.style.setProperty('--sm-image-y', '0px');
             visual.lastOffset = 0;
